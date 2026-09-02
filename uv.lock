@@ -1,0 +1,23 @@
+version = 1
+revision = 3
+requires-python = ">=3.15.0"
+
+[[package]]
+name = "chessinator-2000"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "python-fp-flow" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-fp-flow", specifier = ">=0.1.0.post2" }]
+
+[[package]]
+name = "python-fp-flow"
+version = "0.1.0.post2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/a3/830a4cdc7ef47678e2dd4f0cd29ebc5222d0f6c27bb63b6aa41f316e708a/python_fp_flow-0.1.0.post2.tar.gz", hash = "sha256:9591d1413b7a8b227d12e530ea777b79cd5a9f263fa4f00c2893cc8492500924", size = 3531, upload-time = "2026-08-17T22:06:09.853Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e3/7a/f3a084b95d82a3c99deb1da516d64bc6e07025179a64913c6887eff27866/python_fp_flow-0.1.0.post2-py3-none-any.whl", hash = "sha256:2c89dcb49d1104d6c47f4d1c3f13706d3d6528f06e62c8aaad050909a61477f0", size = 4609, upload-time = "2026-08-17T22:06:08.793Z" },
+]

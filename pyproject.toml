@@ -1,0 +1,19 @@
+[project]
+name = "chessinator-2000"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Matthijs Wensveen", email = "matthijs.wensveen@statnett.no" },
+]
+requires-python = ">=3.15.0rc1"
+dependencies = [
+    "python-fp-flow>=0.1.0.post2",
+]
+
+[project.scripts]
+chessinator-2000 = "chessinator_2000:main"
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"
