@@ -52,12 +52,26 @@ def main() -> None:
     # for move in moves:
     #     print(move)
 
+    # board = frozendict() | {
+    #     (4, 3): Piece(PieceColor.BLACK, PieceKind.PAWN),
+    #     (4, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
+    #     (6, 1): Piece(PieceColor.WHITE, PieceKind.BISHOP),
+    # }
+
+    # game = GameState(board, PieceColor.WHITE)
+    # print(game)
+    # print(get_attackers(game, (4, 3)))
+
     board = frozendict() | {
-        (4, 3): Piece(PieceColor.BLACK, PieceKind.PAWN),
-        (4, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
-        (6, 1): Piece(PieceColor.WHITE, PieceKind.BISHOP),
+        (5, 1): Piece(PieceColor.WHITE, PieceKind.KING),
+        # (6, 1): Piece(PieceColor.WHITE, PieceKind.BISHOP),
+        (8, 1): Piece(PieceColor.BLACK, PieceKind.ROOK),
     }
 
     game = GameState(board, PieceColor.WHITE)
     print(game)
-    print(get_attackers(game, (4, 3)))
+    # print(get_attackers(game, (5, 2)))
+
+    moves = get_possible_moves(game)
+    for move in moves:
+        print(move)

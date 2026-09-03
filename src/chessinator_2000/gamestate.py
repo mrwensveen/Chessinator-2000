@@ -22,6 +22,9 @@ class PieceColor(Enum):
     WHITE = 1
     BLACK = -1
 
+    def flipped(self) -> PieceColor:
+        return PieceColor(self.value * -1)
+
 
 _slide_directions: frozendict[PieceKind, frozenset[Point]] = frozendict() | {
     PieceKind.QUEEN: frozenset()
@@ -77,7 +80,7 @@ class GameState:
         )
 
         # Promotions, if any
-        promotion_row = piece.color.value * -1 % 9
+        promotion_row = piece.color.flipped().value % 9
         kinds = (
             [PieceKind.QUEEN, PieceKind.ROOK, PieceKind.BISHOP, PieceKind.KNIGHT]
             if piece.kind == PieceKind.PAWN and dst[1] == promotion_row
@@ -94,7 +97,7 @@ class GameState:
         return [
             GameState(
                 board=board,
-                turn=PieceColor(self.turn.value * -1),
+                turn=self.turn.flipped(),
                 en_passant=en_passant,
             )
             for board in boards
@@ -130,11 +133,12 @@ def get_attackers(game: GameState, position: Point) -> frozendict[Point, Piece]:
         return frozendict()
 
     # All moves that cause the position to be taken by the current player
+    all_moves = get_possible_moves(game, check_check=False)
     moves = [
         move
-        for move in get_possible_moves(game)
-        if (occupant := get_occupant(game, position)) is not None
-        and occupant.color != game.turn
+        for move in all_moves
+        if (occupant := get_occupant(move, position)) is not None
+        and occupant.color == game.turn
     ]
 
     # Get attacker positions by deleting all new positions from the current board, leaving only the attacker's origin
@@ -150,17 +154,41 @@ def get_attackers(game: GameState, position: Point) -> frozendict[Point, Piece]:
     }
 
 
-def get_pieces(game: GameState, piece: Piece) -> frozendict[Point, Piece]:
-    return frozendict() | {k: v for k, v in game.board.items() if v == piece}
+def get_pieces(
+    game: GameState, color: PieceColor, kind: PieceKind
+) -> frozendict[Point, Piece]:
+    return frozendict() | {
+        k: v for k, v in game.board.items() if v.color == color and v.kind == kind
+    }
 
 
-def get_possible_moves(game: GameState) -> list[GameState]:
-    return list(
-        chain.from_iterable(
-            get_piece_moves(game, position, piece)
-            for position, piece in game.board.items()
-            if piece.color == game.turn
+def get_possible_moves(game: GameState, check_check: bool = True) -> list[GameState]:
+    # All moves, including those that put the king in an attacked position
+    potential_moves = chain.from_iterable(
+        get_piece_moves(game, position, piece)
+        for position, piece in game.board.items()
+        if piece.color == game.turn
+    )
+
+    # Don't check for check
+    if not check_check:
+        return list(potential_moves)
+
+    # Remove the moves that result in check
+    return [move for move in potential_moves if not _is_check(move)]
+
+
+def _is_check(game: GameState) -> bool:
+    king_positions = get_pieces(game, game.turn.flipped(), PieceKind.KING).keys()
+
+    return (
+        next(
+            chain.from_iterable(
+                get_attackers(game, position) for position in king_positions
+            ),
+            None,
         )
+        != None
     )
 
 
@@ -341,6 +369,7 @@ def _get_castle_rook(
         rook
         if (
             (rook := get_occupant(game, (rook_file, rank))) is not None
+            and rook.color == game.turn
             and not rook.moved
             and not [
                 occupant
