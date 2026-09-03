@@ -3,6 +3,7 @@ from chessinator_2000.gamestate import (
     Piece,
     PieceColor,
     PieceKind,
+    get_attackers,
     get_possible_moves,
 )
 
@@ -37,8 +38,21 @@ def main() -> None:
     #     (4, 1): Piece(PieceColor.WHITE, PieceKind.QUEEN),
     # }
 
+    # board = frozendict() | {
+    #     (4, 2): Piece(PieceColor.BLACK, PieceKind.PAWN),
+    #     (4, 3): Piece(PieceColor.BLACK, PieceKind.PAWN),
+    #     (4, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
+    #     (6, 1): Piece(PieceColor.WHITE, PieceKind.BISHOP),
+    # }
+
+    # game = GameState(board, PieceColor.WHITE)
+    # print(game)
+
+    # moves = get_possible_moves(game)
+    # for move in moves:
+    #     print(move)
+
     board = frozendict() | {
-        (4, 2): Piece(PieceColor.BLACK, PieceKind.PAWN),
         (4, 3): Piece(PieceColor.BLACK, PieceKind.PAWN),
         (4, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
         (6, 1): Piece(PieceColor.WHITE, PieceKind.BISHOP),
@@ -46,7 +60,4 @@ def main() -> None:
 
     game = GameState(board, PieceColor.WHITE)
     print(game)
-
-    moves = get_possible_moves(game)
-    for move in moves:
-        print(move)
+    print(get_attackers(game, (4, 3)))

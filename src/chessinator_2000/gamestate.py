@@ -118,6 +118,42 @@ class GameState:
         return f"{board_str}\nturn={self.turn.name}\n"
 
 
+def get_occupant(game: GameState, position: Point | None) -> Piece | None:
+    return None if position is None else game.board.get(position)
+
+
+def get_attackers(game: GameState, position: Point) -> frozendict[Point, Piece]:
+    # If the current player already occupies the position, there are no attackers
+    if (
+        occupant := get_occupant(game, position)
+    ) is not None and occupant.color == game.turn:
+        return frozendict()
+
+    # All moves that cause the position to be taken by the current player
+    moves = [
+        move
+        for move in get_possible_moves(game)
+        if (occupant := get_occupant(game, position)) is not None
+        and occupant.color != game.turn
+    ]
+
+    # Get attacker positions by deleting all new positions from the current board, leaving only the attacker's origin
+    points = chain.from_iterable(
+        iter(_delete(*move.board.keys())(game.board).keys()) for move in moves
+    )
+
+    # Get the attacking pieces from the current board and return as frozendict
+    return frozendict() | {
+        point: occupant
+        for point in points
+        if (occupant := get_occupant(game, point)) is not None
+    }
+
+
+def get_pieces(game: GameState, piece: Piece) -> frozendict[Point, Piece]:
+    return frozendict() | {k: v for k, v in game.board.items() if v == piece}
+
+
 def get_possible_moves(game: GameState) -> list[GameState]:
     return list(
         chain.from_iterable(
@@ -225,8 +261,8 @@ def king_moves(game: GameState, position: Point) -> list[GameState]:
 
     # TODO: not allowed if king leaves or crosses check
 
-    qs_rook = get_castle_rook(game, y, "QS") if not piece.moved else None
-    ks_rook = get_castle_rook(game, y, "KS") if not piece.moved else None
+    qs_rook = _get_castle_rook(game, y, "QS") if not piece.moved else None
+    ks_rook = _get_castle_rook(game, y, "KS") if not piece.moved else None
 
     def move_king(dst: Point):
         return game.move(piece, position, dst)
@@ -296,11 +332,7 @@ def _slide(
         yield from _slide(game, piece, (x, y), direction)
 
 
-def get_occupant(game: GameState, position: Point | None) -> Piece | None:
-    return None if position is None else game.board.get(position)
-
-
-def get_castle_rook(
+def _get_castle_rook(
     game: GameState, rank: int, side: Literal["QS", "KS"]
 ) -> Piece | None:
     rook_file = 1 if side == "QS" else 8
@@ -322,9 +354,9 @@ def get_castle_rook(
     return castle_rook
 
 
-def _delete[K, V](key: K) -> Callable[[frozendict[K, V]], frozendict[K, V]]:
+def _delete[K, V](*key: K) -> Callable[[frozendict[K, V]], frozendict[K, V]]:
     def fn(d: frozendict[K, V]) -> frozendict[K, V]:
-        return frozendict((k, v) for k, v in d.items() if k != key)  # pyright: ignore[reportCallIssue]
+        return frozendict((k, v) for k, v in d.items() if k not in key)  # pyright: ignore[reportCallIssue]
 
     return fn
 
