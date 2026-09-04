@@ -105,6 +105,11 @@ class GameState:
             for board in boards
         ]
 
+    def skip_turn(self) -> GameState:
+        return GameState(
+            board=self.board, turn=self.turn.flipped(), en_passant=self.en_passant
+        )
+
     def __str__(self):
         board_str = "\n".join(
             f"|{
@@ -289,13 +294,21 @@ def king_moves(game: GameState, position: Point) -> list[GameState]:
 
     (x, y) = position
 
-    # TODO: not allowed if king leaves or crosses check
-
-    qs_rook = _get_castle_rook(game, y, "QS") if not piece.moved else None
-    ks_rook = _get_castle_rook(game, y, "KS") if not piece.moved else None
-
     def move_king(dst: Point):
         return game.move(piece, position, dst)
+
+    # Castling is not allowed if king leaves or crosses check
+    castle_allowed = not piece.moved and not _is_check(game.skip_turn())
+    qs_rook = (
+        _get_castle_rook(game, y, "QS")
+        if castle_allowed and len(move_king((x + 1, y))) > 0
+        else None
+    )
+    ks_rook = (
+        _get_castle_rook(game, y, "KS")
+        if castle_allowed and len(move_king((x - 1, y))) > 0
+        else None
+    )
 
     moves = [
         move_king((x, y + 1)) if y <= 7 else [],
