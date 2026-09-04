@@ -3,11 +3,24 @@ from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain
-from typing import Literal
+from typing import Literal, cast
 
 from python_fp_flow.flow import Flow
 
-Point = tuple[int, int]
+type Square = tuple[int, int]
+
+
+def Sq(s: str) -> Square:
+    if len(s) != 2:
+        raise ValueError
+
+    x = ord(s[0]) - 96
+    y = int(s[1])
+
+    if not (1 <= x <= 8 and 1 <= y <= 8):
+        raise ValueError
+
+    return (x, y)
 
 
 class PieceKind(Enum):
@@ -41,16 +54,43 @@ class Piece:
         return s.lower() if self.color == PieceColor.BLACK else s
 
 
+PC_KIND = Literal["p", "P", "r", "R", "n", "N", "b", "B", "q", "Q", "k", "K"]
+
+
+def Pc(s: PC_KIND, moved=False) -> Piece:
+    upper = s.upper()
+    kind = (
+        PieceKind.KNIGHT
+        if upper == "N"
+        else next(
+            kind
+            for kind in PieceKind
+            if kind.name[0] == upper and kind != PieceKind.KNIGHT
+        )
+    )
+    return Piece(PieceColor.WHITE if s == upper else PieceColor.BLACK, kind, moved)
+
+
 @dataclass(frozen=True)
 class GameState:
-    board: frozendict[Point, Piece]
+    board: frozendict[Square, Piece]
     turn: PieceColor
-    en_passant: tuple[Point, Point] | None = None
+    en_passant: tuple[Square, Square] | None = None
 
-    def move(self, piece: Piece, src: Point, dst: Point, next_turn=True) -> GameState:
+    @property
+    def status(self) -> Literal["in_progress", "stalemate", "checkmate"]:
+        return (
+            "in_progress"
+            if any(get_possible_moves(self))
+            else "checkmate"
+            if _is_check(self.skip_turn())
+            else "stalemate"
+        )
+
+    def move(self, piece: Piece, src: Square, dst: Square, next_turn=True) -> GameState:
         # Mark an en-passant possibility if the current player's pawn moves two forward as its initial
         # move
-        en_passant: tuple[Point, Point] | None = (
+        en_passant: tuple[Square, Square] | None = (
             ((src[0], src[1] + piece.color.value), dst)
             if piece.kind == PieceKind.PAWN
             and not piece.moved
@@ -74,8 +114,6 @@ class GameState:
             # Add the piece to the new position
             >> _set(dst, Piece(piece.color, piece.kind, moved=True))
         ).value()
-
-        # TODO: checkmate
 
         return GameState(
             board=board,
@@ -106,11 +144,21 @@ class GameState:
         return f"{board_str}\nturn={self.turn.name}\n"
 
 
-def get_occupant(game: GameState, position: Point | None) -> Piece | None:
+def Game(ranks: list[str], turn=PieceColor.WHITE) -> GameState:
+    board: frozendict[Square, Piece] = frozendict() | {
+        (8 - x, 8 - y): Pc(cast(PC_KIND, s))
+        for y, rank in enumerate(ranks[:8])
+        for x, s in enumerate(rank[:8])
+    }
+
+    return GameState(board, turn=turn)
+
+
+def get_occupant(game: GameState, position: Square | None) -> Piece | None:
     return None if position is None else game.board.get(position)
 
 
-def get_attackers(game: GameState, position: Point) -> Iterable[tuple[Point, Piece]]:
+def get_attackers(game: GameState, position: Square) -> Iterable[tuple[Square, Piece]]:
     # If the current player already occupies the position, there are no attackers
     if (
         occupant := get_occupant(game, position)
@@ -141,7 +189,7 @@ def get_attackers(game: GameState, position: Point) -> Iterable[tuple[Point, Pie
 
 def get_pieces(
     game: GameState, color: PieceColor, kind: PieceKind
-) -> frozendict[Point, Piece]:
+) -> frozendict[Square, Piece]:
     return frozendict() | {
         k: v for k, v in game.board.items() if v.color == color and v.kind == kind
     }
@@ -177,7 +225,7 @@ def _is_check(game: GameState) -> bool:
     return attackers
 
 
-def get_piece_moves(game: GameState, position: Point, piece: Piece) -> list[GameState]:
+def get_piece_moves(game: GameState, position: Square, piece: Piece) -> list[GameState]:
     match piece.kind:
         case PieceKind.PAWN:
             return pawn_moves(game, position)
@@ -191,13 +239,13 @@ def get_piece_moves(game: GameState, position: Point, piece: Piece) -> list[Game
             return []
 
 
-def pawn_moves(game: GameState, position: Point) -> list[GameState]:
+def pawn_moves(game: GameState, position: Square) -> list[GameState]:
     piece = get_occupant(game, position)
     if piece is None or piece.kind != PieceKind.PAWN:
         return []
 
     (x, y) = position
-    positions: list[Point | None] = [
+    positions: list[Square | None] = [
         (x, y + piece.color.value),
         (x, y + 2 * piece.color.value) if not piece.moved else None,
         (x - 1, y + piece.color.value) if x >= 2 else None,
@@ -234,7 +282,7 @@ def pawn_moves(game: GameState, position: Point) -> list[GameState]:
     # Promotions
     promotion_row = piece.color.flipped().value % 9
 
-    def kinds(dst: Point):
+    def kinds(dst: Square):
         return (
             [PieceKind.QUEEN, PieceKind.ROOK, PieceKind.BISHOP, PieceKind.KNIGHT]
             if dst[1] == promotion_row
@@ -249,13 +297,13 @@ def pawn_moves(game: GameState, position: Point) -> list[GameState]:
     )
 
 
-def knight_moves(game: GameState, position: Point) -> list[GameState]:
+def knight_moves(game: GameState, position: Square) -> list[GameState]:
     piece = get_occupant(game, position)
     if piece is None or piece.kind != PieceKind.KNIGHT:
         return []
 
     (x, y) = position
-    positions: list[Point | None] = [
+    positions: list[Square | None] = [
         (x + 1, y + 2) if x <= 7 and y <= 6 else None,
         (x + 2, y + 1) if x <= 6 and y <= 7 else None,
         (x + 2, y - 1) if x <= 6 and y >= 2 else None,
@@ -278,13 +326,13 @@ def knight_moves(game: GameState, position: Point) -> list[GameState]:
     return [game.move(piece, position, dst) for dst in possible if dst is not None]
 
 
-def king_moves(game: GameState, position: Point) -> list[GameState]:
+def king_moves(game: GameState, position: Square) -> list[GameState]:
     piece = get_occupant(game, position)
     if piece is None or piece.kind != PieceKind.KING:
         return []
 
     (x, y) = position
-    positions: list[Point | None] = [
+    positions: list[Square | None] = [
         (x + 1, y) if x <= 7 else None,
         (x - 1, y) if x >= 2 else None,
         (x, y + 1) if y <= 7 else None,
@@ -302,7 +350,7 @@ def king_moves(game: GameState, position: Point) -> list[GameState]:
         for pos, occupant in occupants
     ]
 
-    def move_king(dst: Point):
+    def move_king(dst: Square):
         return game.move(piece, position, dst)
 
     moves = [move_king(dst) if dst is not None else None for dst in possible]
@@ -346,7 +394,7 @@ def king_moves(game: GameState, position: Point) -> list[GameState]:
     )
 
 
-_slide_directions: frozendict[PieceKind, frozenset[Point]] = frozendict() | {
+_slide_directions: frozendict[PieceKind, frozenset[Square]] = frozendict() | {
     PieceKind.QUEEN: frozenset()
     | {(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)},
     PieceKind.ROOK: frozenset() | {(0, 1), (1, 0), (0, -1), (-1, 0)},
@@ -354,7 +402,7 @@ _slide_directions: frozendict[PieceKind, frozenset[Point]] = frozendict() | {
 }
 
 
-def slide_moves(game: GameState, position: Point) -> list[GameState]:
+def slide_moves(game: GameState, position: Square) -> list[GameState]:
     piece = get_occupant(game, position)
     if piece is None or piece.kind not in [
         PieceKind.QUEEN,
@@ -372,8 +420,8 @@ def slide_moves(game: GameState, position: Point) -> list[GameState]:
 
 
 def _slide(
-    game: GameState, piece: Piece, position: Point, direction: Point
-) -> Generator[Point]:
+    game: GameState, piece: Piece, position: Square, direction: Square
+) -> Generator[Square]:
     x, y = (position[0] + direction[0], position[1] + direction[1])
     if x < 1 or x > 8 or y < 1 or y > 8:
         return
@@ -396,6 +444,7 @@ def _get_castle_rook(
         rook
         if (
             (rook := get_occupant(game, (rook_file, rank))) is not None
+            and rook.kind == PieceKind.ROOK
             and rook.color == game.turn
             and not rook.moved
             and not [
