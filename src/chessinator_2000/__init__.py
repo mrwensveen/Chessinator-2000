@@ -62,15 +62,18 @@ def main() -> None:
     # print(game)
     # print(get_attackers(game, (4, 3)))
 
+    # board = frozendict() | {
+    #     (5, 1): Piece(PieceColor.WHITE, PieceKind.KING),
+    #     (8, 1): Piece(PieceColor.BLACK, PieceKind.ROOK),
+    # }
+
     board = frozendict() | {
         (5, 1): Piece(PieceColor.WHITE, PieceKind.KING),
-        # (6, 1): Piece(PieceColor.WHITE, PieceKind.BISHOP),
-        (8, 1): Piece(PieceColor.BLACK, PieceKind.ROOK),
+        (8, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
     }
 
     game = GameState(board, PieceColor.WHITE)
     print(game)
-    # print(get_attackers(game, (5, 2)))
 
     moves = get_possible_moves(game)
     for move in moves:

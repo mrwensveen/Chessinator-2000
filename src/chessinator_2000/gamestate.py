@@ -51,7 +51,9 @@ class GameState:
     turn: PieceColor
     en_passant: tuple[Point, Point] | None = None
 
-    def move(self, piece: Piece, src: Point, dst: Point) -> list[GameState]:
+    def move(
+        self, piece: Piece, src: Point, dst: Point, next_turn=True
+    ) -> list[GameState]:
         # Mark an en-passant possibility if the current player's pawn moves two forward as its initial
         # move
         en_passant: tuple[Point, Point] | None = (
@@ -97,7 +99,7 @@ class GameState:
         return [
             GameState(
                 board=board,
-                turn=self.turn.flipped(),
+                turn=self.turn.flipped() if next_turn else self.turn,
                 en_passant=en_passant,
             )
             for board in boards
@@ -307,7 +309,8 @@ def king_moves(game: GameState, position: Point) -> list[GameState]:
         # Castling QS
         list(
             chain.from_iterable(
-                b.move(qs_rook, (1, y), (4, y)) for b in move_king((x - 2, y))
+                b.move(qs_rook, (1, y), (4, y), next_turn=False)
+                for b in move_king((x - 2, y))
             )
         )
         if qs_rook is not None
@@ -315,7 +318,8 @@ def king_moves(game: GameState, position: Point) -> list[GameState]:
         # Castling KS
         list(
             chain.from_iterable(
-                b.move(ks_rook, (8, y), (6, y)) for b in move_king((x + 2, y))
+                b.move(ks_rook, (8, y), (6, y), next_turn=False)
+                for b in move_king((x + 2, y))
             )
         )
         if ks_rook is not None
