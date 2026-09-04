@@ -1,4 +1,5 @@
-from collections.abc import Callable, Generator
+# import sys
+from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain
@@ -26,19 +27,14 @@ class PieceColor(Enum):
         return PieceColor(self.value * -1)
 
 
-_slide_directions: frozendict[PieceKind, frozenset[Point]] = frozendict() | {
-    PieceKind.QUEEN: frozenset()
-    | {(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)},
-    PieceKind.ROOK: frozenset() | {(0, 1), (1, 0), (0, -1), (-1, 0)},
-    PieceKind.BISHOP: frozenset() | {(1, 1), (1, -1), (-1, -1), (-1, 1)},
-}
-
-
 @dataclass(frozen=True)
 class Piece:
     color: PieceColor
     kind: PieceKind
     moved: bool = False
+
+    def promote(self, kind: PieceKind) -> Piece:
+        return Piece(self.color, kind, self.moved)
 
     def __str__(self):
         s = "N" if self.kind == PieceKind.KNIGHT else self.kind.name[0]
@@ -51,9 +47,7 @@ class GameState:
     turn: PieceColor
     en_passant: tuple[Point, Point] | None = None
 
-    def move(
-        self, piece: Piece, src: Point, dst: Point, next_turn=True
-    ) -> list[GameState]:
+    def move(self, piece: Piece, src: Point, dst: Point, next_turn=True) -> GameState:
         # Mark an en-passant possibility if the current player's pawn moves two forward as its initial
         # move
         en_passant: tuple[Point, Point] | None = (
@@ -73,37 +67,21 @@ class GameState:
             >> (
                 _delete(self.en_passant[1])
                 if piece.kind == PieceKind.PAWN
-                and self.en_passant
+                and self.en_passant is not None
                 and dst == self.en_passant[0]
                 else _identity
             )
             # Add the piece to the new position
             >> _set(dst, Piece(piece.color, piece.kind, moved=True))
+        ).value()
+
+        # TODO: checkmate
+
+        return GameState(
+            board=board,
+            turn=self.turn.flipped() if next_turn else self.turn,
+            en_passant=en_passant,
         )
-
-        # Promotions, if any
-        promotion_row = piece.color.flipped().value % 9
-        kinds = (
-            [PieceKind.QUEEN, PieceKind.ROOK, PieceKind.BISHOP, PieceKind.KNIGHT]
-            if piece.kind == PieceKind.PAWN and dst[1] == promotion_row
-            else [piece.kind]
-        )
-
-        boards = [
-            (board >> _set(dst, Piece(piece.color, kind, moved=True))).value()
-            for kind in kinds
-        ]
-
-        # TODO: check, checkmate and all the other rules
-
-        return [
-            GameState(
-                board=board,
-                turn=self.turn.flipped() if next_turn else self.turn,
-                en_passant=en_passant,
-            )
-            for board in boards
-        ]
 
     def skip_turn(self) -> GameState:
         return GameState(
@@ -115,9 +93,9 @@ class GameState:
             f"|{
                 '|'.join(
                     str(piece)
-                    if (piece := get_occupant(self, (x, y)))
+                    if (piece := get_occupant(self, (x, y))) is not None
                     else '.'
-                    if self.en_passant == (x, y)
+                    if self.en_passant is not None and self.en_passant[0] == (x, y)
                     else ' '
                     for x in range(1, 9)
                 )
@@ -132,7 +110,7 @@ def get_occupant(game: GameState, position: Point | None) -> Piece | None:
     return None if position is None else game.board.get(position)
 
 
-def get_attackers(game: GameState, position: Point) -> frozendict[Point, Piece]:
+def get_attackers(game: GameState, position: Point) -> Iterable[tuple[Point, Piece]]:
     # If the current player already occupies the position, there are no attackers
     if (
         occupant := get_occupant(game, position)
@@ -141,12 +119,12 @@ def get_attackers(game: GameState, position: Point) -> frozendict[Point, Piece]:
 
     # All moves that cause the position to be taken by the current player
     all_moves = get_possible_moves(game, check_check=False)
-    moves = [
+    moves = (
         move
         for move in all_moves
         if (occupant := get_occupant(move, position)) is not None
         and occupant.color == game.turn
-    ]
+    )
 
     # Get attacker positions by deleting all new positions from the current board, leaving only the attacker's origin
     points = chain.from_iterable(
@@ -154,11 +132,11 @@ def get_attackers(game: GameState, position: Point) -> frozendict[Point, Piece]:
     )
 
     # Get the attacking pieces from the current board and return as frozendict
-    return frozendict() | {
-        point: occupant
+    return (
+        (point, occupant)
         for point in points
         if (occupant := get_occupant(game, point)) is not None
-    }
+    )
 
 
 def get_pieces(
@@ -169,7 +147,9 @@ def get_pieces(
     }
 
 
-def get_possible_moves(game: GameState, check_check: bool = True) -> list[GameState]:
+def get_possible_moves(
+    game: GameState, check_check: bool = True
+) -> Iterable[GameState]:
     # All moves, including those that put the king in an attacked position
     potential_moves = chain.from_iterable(
         get_piece_moves(game, position, piece)
@@ -179,24 +159,22 @@ def get_possible_moves(game: GameState, check_check: bool = True) -> list[GameSt
 
     # Don't check for check
     if not check_check:
-        return list(potential_moves)
+        return potential_moves
 
     # Remove the moves that result in check
-    return [move for move in potential_moves if not _is_check(move)]
+    return (move for move in potential_moves if not _is_check(move))
 
 
 def _is_check(game: GameState) -> bool:
+    # print(f"\033[92m{game}\033[0m", file=sys.stderr)
     king_positions = get_pieces(game, game.turn.flipped(), PieceKind.KING).keys()
-
-    return (
-        next(
-            chain.from_iterable(
-                get_attackers(game, position) for position in king_positions
-            ),
-            None,
+    attackers = any(
+        chain.from_iterable(
+            get_attackers(game, position) for position in king_positions
         )
-        != None
     )
+
+    return attackers
 
 
 def get_piece_moves(game: GameState, position: Point, piece: Piece) -> list[GameState]:
@@ -214,8 +192,8 @@ def get_piece_moves(game: GameState, position: Point, piece: Piece) -> list[Game
 
 
 def pawn_moves(game: GameState, position: Point) -> list[GameState]:
-    piece = game.board[position]
-    if not piece or piece.kind != PieceKind.PAWN:
+    piece = get_occupant(game, position)
+    if piece is None or piece.kind != PieceKind.PAWN:
         return []
 
     (x, y) = position
@@ -229,36 +207,51 @@ def pawn_moves(game: GameState, position: Point) -> list[GameState]:
     occupants = [get_occupant(game, p) for p in positions]
 
     possible = [
-        positions[0] if not occupants[0] else None,
-        positions[1] if not occupants[0] and not occupants[1] else None,
-        positions[2]
-        if positions[2]
-        and (
-            occupants[2]
-            and occupants[2].color != piece.color
-            or (game.en_passant and positions[2] == game.en_passant[0])
-        )
-        else None,
-        positions[3]
-        if positions[3]
-        and (
-            occupants[3]
-            and occupants[3].color != piece.color
-            or (game.en_passant and positions[3] == game.en_passant[0])
-        )
-        else None,
+        pos
+        for pos in [
+            positions[0] if occupants[0] is None else None,
+            positions[1] if occupants[0] is None and occupants[1] is None else None,
+            positions[2]
+            if positions[2] is not None
+            and (
+                occupants[2] is not None
+                and occupants[2].color != piece.color
+                or (game.en_passant is not None and positions[2] == game.en_passant[0])
+            )
+            else None,
+            positions[3]
+            if positions[3] is not None
+            and (
+                occupants[3] is not None
+                and occupants[3].color != piece.color
+                or (game.en_passant is not None and positions[3] == game.en_passant[0])
+            )
+            else None,
+        ]
+        if pos is not None
     ]
+
+    # Promotions
+    promotion_row = piece.color.flipped().value % 9
+
+    def kinds(dst: Point):
+        return (
+            [PieceKind.QUEEN, PieceKind.ROOK, PieceKind.BISHOP, PieceKind.KNIGHT]
+            if dst[1] == promotion_row
+            else [piece.kind]
+        )
 
     return list(
         chain.from_iterable(
-            game.move(piece, position, dst) for dst in possible if dst is not None
+            (game.move(piece.promote(kind), position, dst) for kind in kinds(dst))
+            for dst in possible
         )
     )
 
 
 def knight_moves(game: GameState, position: Point) -> list[GameState]:
-    piece = game.board[position]
-    if not piece or piece.kind != PieceKind.KNIGHT:
+    piece = get_occupant(game, position)
+    if piece is None or piece.kind != PieceKind.KNIGHT:
         return []
 
     (x, y) = position
@@ -277,74 +270,93 @@ def knight_moves(game: GameState, position: Point) -> list[GameState]:
         p
         for p in positions
         if p is not None
-        and (not (occupant := get_occupant(game, p)) or occupant.color != piece.color)
+        and (
+            (occupant := get_occupant(game, p)) is None or occupant.color != piece.color
+        )
     ]
 
-    return list(
-        chain.from_iterable(
-            game.move(piece, position, dst) for dst in possible if dst is not None
-        )
-    )
+    return [game.move(piece, position, dst) for dst in possible if dst is not None]
 
 
 def king_moves(game: GameState, position: Point) -> list[GameState]:
-    piece = game.board[position]
-    if not piece or piece.kind != PieceKind.KING:
+    piece = get_occupant(game, position)
+    if piece is None or piece.kind != PieceKind.KING:
         return []
 
     (x, y) = position
+    positions: list[Point | None] = [
+        (x + 1, y) if x <= 7 else None,
+        (x - 1, y) if x >= 2 else None,
+        (x, y + 1) if y <= 7 else None,
+        (x, y - 1) if y >= 2 else None,
+        (x + 1, y + 1) if x <= 7 and y <= 7 else None,
+        (x + 1, y - 1) if x <= 7 and y >= 2 else None,
+        (x - 1, y + 1) if x >= 2 and y <= 7 else None,
+        (x - 1, y - 1) if x >= 2 and y >= 2 else None,
+    ]
+
+    occupants = [(p, get_occupant(game, p)) for p in positions]
+
+    possible = [
+        pos if occupant is None or occupant.color != piece.color else None
+        for pos, occupant in occupants
+    ]
 
     def move_king(dst: Point):
         return game.move(piece, position, dst)
 
+    moves = [move_king(dst) if dst is not None else None for dst in possible]
+
     # Castling is not allowed if king leaves or crosses check
-    castle_allowed = not piece.moved and not _is_check(game.skip_turn())
     qs_rook = (
-        _get_castle_rook(game, y, "QS")
-        if castle_allowed and len(move_king((x + 1, y))) > 0
+        rook
+        if not piece.moved
+        and (rook := _get_castle_rook(game, y, "QS")) is not None
+        and not _is_check(game.skip_turn())
+        and not _is_check(move_king((x + 1, y)))
         else None
     )
     ks_rook = (
-        _get_castle_rook(game, y, "KS")
-        if castle_allowed and len(move_king((x - 1, y))) > 0
+        rook
+        if not piece.moved
+        and (rook := _get_castle_rook(game, y, "KS")) is not None
+        and not _is_check(game.skip_turn())
+        and not _is_check(move_king((x - 1, y)))
         else None
     )
 
-    moves = [
-        move_king((x, y + 1)) if y <= 7 else [],
-        move_king((x, y - 1)) if y >= 2 else [],
-        move_king((x + 1, y)) if x <= 7 else [],
-        move_king((x - 1, y)) if x >= 2 else [],
-        move_king((x + 1, y + 1)) if x <= 7 and y <= 7 else [],
-        move_king((x + 1, y - 1)) if x <= 7 and y >= 2 else [],
-        move_king((x - 1, y + 1)) if x >= 2 and y <= 7 else [],
-        move_king((x - 1, y - 1)) if x >= 2 and y >= 2 else [],
+    castlings = [
         # Castling QS
-        list(
-            chain.from_iterable(
-                b.move(qs_rook, (1, y), (4, y), next_turn=False)
-                for b in move_king((x - 2, y))
-            )
-        )
+        move_king((x - 2, y)).move(qs_rook, (1, y), (4, y), next_turn=False)
         if qs_rook is not None
-        else [],
+        else None,
         # Castling KS
-        list(
-            chain.from_iterable(
-                b.move(ks_rook, (8, y), (6, y), next_turn=False)
-                for b in move_king((x + 2, y))
-            )
-        )
+        move_king((x + 2, y)).move(ks_rook, (8, y), (6, y), next_turn=False)
         if ks_rook is not None
-        else [],
+        else None,
     ]
 
-    return list(chain.from_iterable(moves))
+    return list(
+        chain.from_iterable(
+            (
+                (move for move in moves if move is not None),
+                (move for move in castlings if move is not None),
+            )
+        )
+    )
+
+
+_slide_directions: frozendict[PieceKind, frozenset[Point]] = frozendict() | {
+    PieceKind.QUEEN: frozenset()
+    | {(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)},
+    PieceKind.ROOK: frozenset() | {(0, 1), (1, 0), (0, -1), (-1, 0)},
+    PieceKind.BISHOP: frozenset() | {(1, 1), (1, -1), (-1, -1), (-1, 1)},
+}
 
 
 def slide_moves(game: GameState, position: Point) -> list[GameState]:
     piece = get_occupant(game, position)
-    if not piece or piece.kind not in [
+    if piece is None or piece.kind not in [
         PieceKind.QUEEN,
         PieceKind.ROOK,
         PieceKind.BISHOP,
@@ -356,9 +368,7 @@ def slide_moves(game: GameState, position: Point) -> list[GameState]:
         _slide(game, piece, position, direction) for direction in directions
     )
 
-    return list(
-        chain.from_iterable(game.move(piece, position, dst) for dst in possible)
-    )
+    return [game.move(piece, position, dst) for dst in possible]
 
 
 def _slide(
