@@ -2,24 +2,11 @@ from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain
-from typing import Literal, cast
+from typing import Literal
 
 from python_fp_flow.flow import Flow
 
 type Square = tuple[int, int]
-
-
-def Sq(s: str) -> Square:
-    if len(s) != 2:
-        raise ValueError
-
-    x = ord(s[0]) - 96
-    y = int(s[1])
-
-    if not (1 <= x <= 8 and 1 <= y <= 8):
-        raise ValueError
-
-    return (x, y)
 
 
 class PieceKind(Enum):
@@ -51,23 +38,6 @@ class Piece:
     def __str__(self):
         s = "N" if self.kind == PieceKind.KNIGHT else self.kind.name[0]
         return s.lower() if self.color == PieceColor.BLACK else s
-
-
-PC_KIND = Literal["p", "P", "r", "R", "n", "N", "b", "B", "q", "Q", "k", "K"]
-
-
-def Pc(s: PC_KIND, moved=False) -> Piece:
-    upper = s.upper()
-    kind = (
-        PieceKind.KNIGHT
-        if upper == "N"
-        else next(
-            kind
-            for kind in PieceKind
-            if kind.name[0] == upper and kind != PieceKind.KNIGHT
-        )
-    )
-    return Piece(PieceColor.WHITE if s == upper else PieceColor.BLACK, kind, moved)
 
 
 @dataclass(frozen=True)
@@ -129,7 +99,7 @@ class GameState:
         board_str = "\n".join(
             f"|{
                 '|'.join(
-                    f'\033[{"91m" if piece.color == PieceColor.WHITE else "94m"}{piece}\033[0m'
+                    f'\033[{"91m" if piece.color == PieceColor.WHITE else "94m"}{piece}{"\u20f0" if not piece.moved else ""}\033[0m'
                     if (piece := get_occupant(self, (x, y))) is not None
                     else '.'
                     if self.en_passant is not None and self.en_passant[0] == (x, y)
@@ -141,17 +111,6 @@ class GameState:
         )
 
         return f"{board_str}\nturn={self.turn.name}\n"
-
-
-def Game(ranks: list[str], turn=PieceColor.WHITE) -> GameState:
-    board: frozendict[Square, Piece] = frozendict() | {
-        (x + 1, 8 - y): Pc(cast(PC_KIND, s))
-        for y, rank in enumerate(ranks[:8])
-        for x, s in enumerate(rank[:8])
-        if s != " "
-    }
-
-    return GameState(board, turn=turn)
 
 
 def get_occupant(game: GameState, position: Square | None) -> Piece | None:

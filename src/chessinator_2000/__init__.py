@@ -1,7 +1,8 @@
 import random
 import sys
 
-from chessinator_2000.gamestate import Game, get_possible_moves
+from chessinator_2000.gamestate import get_possible_moves
+from chessinator_2000.parser import Game
 
 DEFAULT_GAME = Game(
     [
@@ -97,18 +98,28 @@ def main() -> None:
     # game = GameState(board, PieceColor.BLACK)
 
     game = DEFAULT_GAME
-    # game = Game(
-    #     [
-    #         "r  qk nr",
-    #         "  p",
-    #         "ppnpb pb",
-    #         "P   pp p",
-    #         "   Q PPP",
-    #         "R P  N",
-    #         " P PP B",
-    #         " NB K  R",
-    #     ]
-    # )
+    # game = Game("""
+    #     | |n|b| |k| | |r|
+    #     |r|p| | |p|p| | |
+    #     | | | | | |n| | |
+    #     |p| | |p| | |p|P|
+    #     |P|p| |q|P| | |Q|
+    #     | | |N| | | | |P|
+    #     | |b|P|P|N|P| | |
+    #     | | | | |K|B| |R|
+    #     turn=WHITE
+    # """)
+    # """
+    # |r⃰|n⃰|b⃰|q⃰|k⃰|b⃰|n⃰|r⃰|
+    # | |p⃰|p⃰|p⃰|p⃰|p⃰|p⃰|p⃰|
+    # | | | | | | | | |
+    # |p| | | | | | | |
+    # | | | | | |P| | |
+    # | | | | | |.| |P|
+    # |P⃰|P⃰|P⃰|P⃰|P⃰| |P⃰| |
+    # |R⃰|N⃰|B⃰|Q⃰|K⃰|B⃰|N⃰|R⃰|
+    # turn=BLACK
+    # """
     print(game)
 
     # moves = get_possible_moves(game)
@@ -117,16 +128,18 @@ def main() -> None:
 
     # print(game.status)
 
-    for _ in range(750):
+    for _ in range(3):
         if len(game.board) == 2:
             break
 
-        try:
-            moves = list(get_possible_moves(game))
-        except RecursionError as ex:
-            print("ERROR", file=sys.stderr)
-            print(game)
-            return
+        # try:
+        #     moves = list(get_possible_moves(game))
+        # except RecursionError as ex:
+        #     print("ERROR", file=sys.stderr)
+        #     print(game) ̲P̲P
+        #     return
+
+        moves = list(get_possible_moves(game))
 
         if len(moves) > 0:
             # Pick a random move
