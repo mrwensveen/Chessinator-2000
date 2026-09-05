@@ -1,4 +1,3 @@
-# import sys
 from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from enum import Enum
@@ -130,7 +129,7 @@ class GameState:
         board_str = "\n".join(
             f"|{
                 '|'.join(
-                    str(piece)
+                    f'\033[{"91m" if piece.color == PieceColor.WHITE else "94m"}{piece}\033[0m'
                     if (piece := get_occupant(self, (x, y))) is not None
                     else '.'
                     if self.en_passant is not None and self.en_passant[0] == (x, y)
@@ -146,9 +145,10 @@ class GameState:
 
 def Game(ranks: list[str], turn=PieceColor.WHITE) -> GameState:
     board: frozendict[Square, Piece] = frozendict() | {
-        (8 - x, 8 - y): Pc(cast(PC_KIND, s))
+        (x + 1, 8 - y): Pc(cast(PC_KIND, s))
         for y, rank in enumerate(ranks[:8])
         for x, s in enumerate(rank[:8])
+        if s != " "
     }
 
     return GameState(board, turn=turn)
@@ -198,6 +198,8 @@ def get_pieces(
 def get_possible_moves(
     game: GameState, check_check: bool = True
 ) -> Iterable[GameState]:
+    # print(f"\033[92m{game}\033[0m", file=sys.stderr)
+
     # All moves, including those that put the king in an attacked position
     potential_moves = chain.from_iterable(
         get_piece_moves(game, position, piece)
@@ -361,7 +363,7 @@ def king_moves(game: GameState, position: Square) -> list[GameState]:
         if not piece.moved
         and (rook := _get_castle_rook(game, y, "QS")) is not None
         and not _is_check(game.skip_turn())
-        and not _is_check(move_king((x + 1, y)))
+        and not _is_check(move_king((x - 1, y)))
         else None
     )
     ks_rook = (
@@ -369,7 +371,7 @@ def king_moves(game: GameState, position: Square) -> list[GameState]:
         if not piece.moved
         and (rook := _get_castle_rook(game, y, "KS")) is not None
         and not _is_check(game.skip_turn())
-        and not _is_check(move_king((x - 1, y)))
+        and not _is_check(move_king((x + 1, y)))
         else None
     )
 

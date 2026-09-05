@@ -1,17 +1,18 @@
 import random
+import sys
 
 from chessinator_2000.gamestate import Game, get_possible_moves
 
 DEFAULT_GAME = Game(
     [
-        "rnbkqbnr",
+        "rnbqkbnr",
         "pppppppp",
         "",
         "",
         "",
         "",
         "PPPPPPPP",
-        "RNBKQBNR",
+        "RNBQKBNR",
     ]
 )
 
@@ -96,6 +97,18 @@ def main() -> None:
     # game = GameState(board, PieceColor.BLACK)
 
     game = DEFAULT_GAME
+    # game = Game(
+    #     [
+    #         "r  qk nr",
+    #         "  p",
+    #         "ppnpb pb",
+    #         "P   pp p",
+    #         "   Q PPP",
+    #         "R P  N",
+    #         " P PP B",
+    #         " NB K  R",
+    #     ]
+    # )
     print(game)
 
     # moves = get_possible_moves(game)
@@ -104,10 +117,22 @@ def main() -> None:
 
     # print(game.status)
 
-    for i in range(10):
-        moves = get_possible_moves(game)
-        # Pick a random move
-        game = random.choice(list(moves))
-        print(game)
+    for _ in range(750):
+        if len(game.board) == 2:
+            break
+
+        try:
+            moves = list(get_possible_moves(game))
+        except RecursionError as ex:
+            print("ERROR", file=sys.stderr)
+            print(game)
+            return
+
+        if len(moves) > 0:
+            # Pick a random move
+            game = random.choice(moves)
+            print(game)
+        else:
+            break
 
     print(game.status)
