@@ -1,3 +1,4 @@
+import re
 from typing import Literal, cast, overload
 
 from chessinator_2000.gamestate import GameState, Piece, PieceColor, PieceKind, Square
@@ -49,12 +50,23 @@ def _game_from_str(board: str) -> GameState:
     return _game_from_list(ranks, turn)
 
 def _game_from_list(ranks: list[str], turn: PieceColor) -> GameState:
+    # Encode unmoved pieces (p + \ud1fa) as a single character
+    re_unmoved = re.compile('(.)\u1dfa')
+    def encode_unmoved(match: re.Match) -> str:
+        return chr(ord(match.group(1)) + 0x1dfa)
+
+    def decode(enc: int, moved: bool) -> PC_KIND:
+        return cast(PC_KIND, chr(enc - (0 if moved else 0x1dfa)))
+
     b: frozendict[Square, Piece] = frozendict() | {
-        (x + 1, 8 - y): Pc(cast(PC_KIND, s))
+        (x + 1, 8 - y): Pc(kind, moved)
         for y, rank in enumerate(ranks[:8])
-        for x, s in enumerate(rank[:8])
+        for x, s in enumerate(re_unmoved.sub(encode_unmoved, rank)[:8])
         if s not in [" ", "."]
+        and (enc := ord(s)) > 0
+        and ((moved := enc <= 0x1dfa) or True)
+        and (kind := decode(enc, moved))
     }
 
-    # TODO: en passant
+    # TODO: decode en passant
     return GameState(b, turn)
