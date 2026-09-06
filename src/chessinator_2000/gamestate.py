@@ -161,7 +161,7 @@ def get_possible_moves(
 
     # All moves, including those that put the king in an attacked position
     potential_moves = chain.from_iterable(
-        get_piece_moves(game, position, piece)
+        get_piece_moves(game, position, piece, castling_allowed=check_check)
         for position, piece in game.board.items()
         if piece.color == game.turn
     )
@@ -186,14 +186,16 @@ def _is_check(game: GameState) -> bool:
     return attackers
 
 
-def get_piece_moves(game: GameState, position: Square, piece: Piece) -> list[GameState]:
+def get_piece_moves(
+    game: GameState, position: Square, piece: Piece, castling_allowed: bool
+) -> list[GameState]:
     match piece.kind:
         case PieceKind.PAWN:
             return pawn_moves(game, position)
         case PieceKind.KNIGHT:
             return knight_moves(game, position)
         case PieceKind.KING:
-            return king_moves(game, position)
+            return king_moves(game, position, castling_allowed=castling_allowed)
         case PieceKind.QUEEN | PieceKind.ROOK | PieceKind.BISHOP:
             return slide_moves(game, position)
         case _:
@@ -287,7 +289,9 @@ def knight_moves(game: GameState, position: Square) -> list[GameState]:
     return [game.move(piece, position, dst) for dst in possible if dst is not None]
 
 
-def king_moves(game: GameState, position: Square) -> list[GameState]:
+def king_moves(
+    game: GameState, position: Square, castling_allowed: bool = True
+) -> list[GameState]:
     piece = get_occupant(game, position)
     if piece is None or piece.kind != PieceKind.KING:
         return []
@@ -316,6 +320,9 @@ def king_moves(game: GameState, position: Square) -> list[GameState]:
 
     moves = [move_king(dst) if dst is not None else None for dst in possible]
 
+    if not castling_allowed:
+        return [move for move in moves if move is not None]
+
     # Castling is not allowed if king leaves or crosses check
     qs_rook = (
         rook
@@ -336,11 +343,11 @@ def king_moves(game: GameState, position: Square) -> list[GameState]:
 
     castlings = [
         # Castling QS
-        move_king((x - 2, y)).move(qs_rook, (1, y), (4, y), next_turn=False)
+        move_king((x - 2, y)).skip_turn().move(qs_rook, (1, y), (4, y))
         if qs_rook is not None
         else None,
         # Castling KS
-        move_king((x + 2, y)).move(ks_rook, (8, y), (6, y), next_turn=False)
+        move_king((x + 2, y)).skip_turn().move(ks_rook, (8, y), (6, y))
         if ks_rook is not None
         else None,
     ]

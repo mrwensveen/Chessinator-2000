@@ -96,18 +96,18 @@ def main() -> None:
 
     # game = GameState(board, PieceColor.BLACK)
 
-    # game = DEFAULT_GAME
-    game = Game("""
-        | |n᷺|b᷺| |k᷺| | |r᷺|
-        |r|p᷺| | |p᷺|p᷺| | |
-        | | | | | |n| | |
-        |p| | |p| | |p|P|
-        |P|p| |q|P| | |Q|
-        | | |N| | | | |P|
-        | |b|P᷺|P᷺|N|P᷺| | |
-        | | | | |K᷺|B᷺| |R᷺|
-        turn=WHITE
-    """)
+    game = DEFAULT_GAME
+    # game = Game("""
+    #     | | | | |k᷺| | |r᷺|
+    #     | | | | | | | | |
+    #     | | | | | | | | |
+    #     | | | | | | | | |
+    #     | | | | | | | | |
+    #     | | | | | | | | |
+    #     | | | | | | | | |
+    #     | | | | |K᷺|B᷺| |R᷺|
+    #     turn=WHITE
+    # """)
     print(game)
 
     # moves = get_possible_moves(game)
@@ -116,7 +116,7 @@ def main() -> None:
 
     # print(game.status)
 
-    for _ in range(1):
+    for _ in range(750):
         if len(game.board) == 2:
             break
 
