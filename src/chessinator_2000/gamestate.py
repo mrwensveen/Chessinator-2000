@@ -101,7 +101,7 @@ class GameState:
                 '|'.join(
                     f'\033[{"91m" if piece.color == PieceColor.WHITE else "94m"}{piece}{"\u1dfa" if not piece.moved else ""}\033[0m'
                     if (piece := get_occupant(self, (x, y))) is not None
-                    else '.'
+                    else ('↑' if self.en_passant[1][1] == self.en_passant[0][1] + 1 else '↓')
                     if self.en_passant is not None and self.en_passant[0] == (x, y)
                     else ' '
                     for x in range(1, 9)
