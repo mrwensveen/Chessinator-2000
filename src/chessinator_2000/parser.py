@@ -63,13 +63,13 @@ def _game_from_str(board: str) -> GameState:
 
 def _game_from_list(ranks: list[str], turn: PieceColor) -> GameState:
     # Encode unmoved pieces (p + \ud1fa) as a single character
-    re_unmoved = re.compile("(.)\u1dfa")
+    re_unmoved = re.compile("(.)\u0303")
 
     def encode_unmoved(match: re.Match) -> str:
-        return chr(ord(match.group(1)) + 0x1DFA)
+        return chr(ord(match.group(1)) + 0x0303)
 
     def decode(enc: int, moved: bool) -> PC_KIND:
-        return cast(PC_KIND, chr(enc - (0 if moved else 0x1DFA)))
+        return cast(PC_KIND, chr(enc - (0 if moved else 0x0303)))
 
     b: frozendict[Square, Piece] = frozendict() | {
         (x + 1, 8 - y): Pc(kind, moved)
@@ -77,7 +77,7 @@ def _game_from_list(ranks: list[str], turn: PieceColor) -> GameState:
         for x, s in enumerate(re_unmoved.sub(encode_unmoved, rank)[:8])
         if s not in " ↑↓"
         and (enc := ord(s)) > 0
-        and ((moved := enc <= 0x1DFA) or True)
+        and ((moved := enc <= 0x0303) or True)
         and (kind := decode(enc, moved))
     }
 

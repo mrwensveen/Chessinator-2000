@@ -4,17 +4,16 @@ from chessinator_2000.gamestate import get_possible_moves
 from chessinator_2000.parser import Game
 
 DEFAULT_GAME = Game("""
-    |r᷺|n᷺|b᷺|q᷺|k᷺|b᷺|n᷺|r᷺|
-    |p᷺|p᷺|p᷺|p᷺|p᷺|p᷺|p᷺|p᷺|
+    |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
+    |p̃|p̃|p̃|p̃|p̃|p̃|p̃|p̃|
     | | | | | | | | |
     | | | | | | | | |
     | | | | | | | | |
     | | | | | | | | |
-    |P᷺|P᷺|P᷺|P᷺|P᷺|P᷺|P᷺|P᷺|
-    |R᷺|N᷺|B᷺|Q᷺|K᷺|B᷺|N᷺|R᷺|
+    |P̃|P̃|P̃|P̃|P̃|P̃|P̃|P̃|
+    |R̃|Ñ|B̃|Q̃|K̃|B̃|Ñ|R̃|
     turn=WHITE
 """)
-
 
 
 def main() -> None:
