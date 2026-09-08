@@ -13,14 +13,16 @@
 # TODO: ContextManager stuff?
 
 import random
+from typing import Protocol
 
 from chessinator_2000.gamestate import GameState, get_possible_moves
 
 
-class RandomMover:
-    def __init__(self, name: str)
-        self.name = name
+class Mover(Protocol):
+    def move(self, game: GameState) -> GameState | None: ...
 
+
+class RandomMover:
     def move(self, game: GameState) -> GameState | None:
         moves = list(get_possible_moves(game))
 
@@ -30,3 +32,7 @@ class RandomMover:
             return move
         else:
             return None
+
+
+class PlayerMover:
+    def move(self, game: GameState) -> GameState | None: ...
