@@ -1,5 +1,6 @@
 import random
 
+from chessinator_2000.app import Chessinator2000
 from chessinator_2000.gamestate import get_possible_moves
 from chessinator_2000.parser import Game
 
@@ -115,7 +116,7 @@ def main() -> None:
 
     # print(game.status)
 
-    for _ in range(750):
+    for _ in range(0):
         if len(game.board) == 2:
             break
 
@@ -136,3 +137,6 @@ def main() -> None:
             break
 
     print(game.status)
+
+    app = Chessinator2000()
+    app.run()

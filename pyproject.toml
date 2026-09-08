@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.15.0rc1"
 dependencies = [
     "python-fp-flow>=0.1.0.post2",
+    "textual>=8.2.8",
 ]
 
 [project.scripts]
