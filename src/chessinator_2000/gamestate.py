@@ -4,7 +4,7 @@ from enum import Enum
 from itertools import chain
 from typing import Literal
 
-from python_fp_flow.flow import Flow
+from python_fp_flow import Flow
 
 type Square = tuple[int, int]
 
