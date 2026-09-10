@@ -1,7 +1,5 @@
-import random
-
-from chessinator_2000.gamestate import get_possible_moves
 from chessinator_2000.parser import Game
+from chessinator_2000.tui.app import Chessinator2000
 
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
@@ -97,42 +95,45 @@ def main() -> None:
 
     game = DEFAULT_GAME
     # game = Game("""
-    #     | | | | |k᷺| | |r᷺|
+    #     | | | | |k̃| | |r̃|
     #     | | | | | | | | |
     #     | | | | | | | | |
     #     | | | | | | | | |
     #     | | | | | | | | |
     #     | | | | | | | | |
     #     | | | | | | | | |
-    #     | | | | |K᷺|B᷺| |R᷺|
+    #     | | | | |K̃|B̃| |R̃|
     #     turn=WHITE
     # """)
-    print(game)
+    # print(game)
 
     # moves = get_possible_moves(game)
-    # for move in moves:
+    # for move in moveexit()s:
     #     print(move)
 
     # print(game.status)
 
-    for _ in range(750):
-        if len(game.board) == 2:
-            break
+    # for _ in range(0):
+    #     if len(game.board) == 2:
+    #         break
 
-        # try:
-        #     moves = list(get_possible_moves(game))
-        # except RecursionError as ex:
-        #     print("ERROR", file=sys.stderr)
-        #     print(game) ̲P̲P
-        #     return
+    #     # try:
+    #     #     moves = list(get_possible_moves(game))
+    #     # except RecursionError as ex:
+    #     #     print("ERROR", file=sys.stderr)
+    #     #     print(game) ̲P̲P
+    #     #     return
 
-        moves = list(get_possible_moves(game))
+    #     moves = list(get_possible_moves(game))
 
-        if len(moves) > 0:
-            # Pick a random move
-            game = random.choice(moves)
-            print(game)
-        else:
-            break
+    #     if len(moves) > 0:
+    #         # Pick a random move
+    #         game = random.choice(moves)
+    #         print(game)
+    #     else:
+    #         break
 
-    print(game.status)
+    # print(game.status)
+
+    app = Chessinator2000(game)
+    app.run()
