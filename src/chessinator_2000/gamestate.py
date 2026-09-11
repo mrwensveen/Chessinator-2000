@@ -1,10 +1,12 @@
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain
 from typing import Literal
 
 from python_fp_flow import Flow
+
+from . import utils
 
 type Square = tuple[int, int]
 
@@ -70,18 +72,18 @@ class GameState:
         board = (
             Flow(self.board)
             # Delete the piece from src
-            >> _delete(src)
+            >> utils.delete(src)
             # Delete the opponent's pawn if it left an en-passant possibility and the current player's
             # pawn is moved to that spot
             >> (
-                _delete(self.en_passant[1])
+                utils.delete(self.en_passant[1])
                 if piece.kind == PieceKind.PAWN
                 and self.en_passant is not None
                 and dst == self.en_passant[0]
-                else _identity
+                else utils.identity
             )
             # Add the piece to the new position
-            >> _set(dst, Piece(piece.color, piece.kind, moved=True))
+            >> utils.set(dst, Piece(piece.color, piece.kind, moved=True))
         ).value()
 
         return GameState(
@@ -139,7 +141,7 @@ def get_attackers(game: GameState, position: Square) -> Iterable[tuple[Square, P
 
     # Get attacker positions by deleting all new positions from the current board, leaving only the attacker's origin
     points = chain.from_iterable(
-        iter(_delete(*move.board.keys())(game.board).keys()) for move in moves
+        iter(utils.delete(*move.board.keys())(game.board).keys()) for move in moves
     )
 
     # Get the attacking pieces from the current board and return as frozendict
@@ -429,21 +431,3 @@ def _get_castle_rook(
     )
 
     return castle_rook
-
-
-def _delete[K, V](*key: K) -> Callable[[frozendict[K, V]], frozendict[K, V]]:
-    def fn(d: frozendict[K, V]) -> frozendict[K, V]:
-        return frozendict((k, v) for k, v in d.items() if k not in key)  # pyright: ignore[reportCallIssue]
-
-    return fn
-
-
-def _set[K, V](key: K, value: V) -> Callable[[frozendict[K, V]], frozendict[K, V]]:
-    def fn(d: frozendict[K, V]) -> frozendict[K, V]:
-        return d | {key: value}
-
-    return fn
-
-
-def _identity[T](x: T, /) -> T:
-    return x

@@ -1,3 +1,4 @@
+from chessinator_2000.mover import FirstMover, RandomMover, RandomPieceMover
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.app import Chessinator2000
 
@@ -135,5 +136,7 @@ def main() -> None:
 
     # print(game.status)
 
-    app = Chessinator2000(game)
+    app = Chessinator2000(
+        game, white_mover=RandomPieceMover(), black_mover=FirstMover()
+    )
     app.run()

@@ -16,6 +16,7 @@ import random
 from typing import Protocol
 
 from chessinator_2000.gamestate import GameState, get_possible_moves
+from chessinator_2000.utils import groupby
 
 
 class Mover(Protocol):
@@ -34,5 +35,21 @@ class RandomMover:
             return None
 
 
-class PlayerMover:
-    def move(self, game: GameState) -> GameState | None: ...
+class FirstMover:
+    def move(self, game: GameState) -> GameState | None:
+        return next(iter(get_possible_moves(game)), None)
+
+
+class RandomPieceMover:
+    def move(self, game: GameState) -> GameState | None:
+        moves = list(get_possible_moves(game))
+
+        if len(moves) > 0:
+            # Get the move's leaving position by removing all resulting positions from the original board
+            origins = groupby(
+                moves, lambda move: next(iter(game.board.keys() - move.board.keys()))
+            )
+            square = random.choice(list(origins.keys()))
+            return random.choice(list(origins[square]))
+        else:
+            return None

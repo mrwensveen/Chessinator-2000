@@ -1,11 +1,10 @@
-import random
-
 from textual.app import App, ComposeResult
 from textual.containers import Center, CenterMiddle
 from textual.reactive import reactive
 from textual.widgets import Button, Header
 
-from chessinator_2000.gamestate import GameState, get_possible_moves
+from chessinator_2000.gamestate import GameState, PieceColor
+from chessinator_2000.mover import Mover
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.chessboard import Chessboard
 
@@ -15,9 +14,13 @@ class Chessinator2000(App):
 
     game: reactive[GameState | None] = reactive(None)
 
-    def __init__(self, game: GameState) -> None:
+    def __init__(self, game: GameState, white_mover: Mover, black_mover: Mover) -> None:
         super().__init__()
         self.game = game
+        self.movers: frozendict[PieceColor, Mover] = frozendict() | {
+            PieceColor.WHITE: white_mover,
+            PieceColor.BLACK: black_mover,
+        }
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -53,12 +56,10 @@ class Chessinator2000(App):
         if len(self.game.board) == 2:
             self.update_timer.stop()
 
-        moves = list(get_possible_moves(self.game))
+        move = self.movers[self.game.turn].move(self.game)
 
-        if len(moves) > 0:
-            # Pick a random move
-            self.game = random.choice(moves)
-            print(self.game)
+        if move is not None:
+            self.game = move
         else:
             self.update_timer.stop()
 
