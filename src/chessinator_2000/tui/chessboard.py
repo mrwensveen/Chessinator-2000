@@ -4,6 +4,7 @@ from itertools import batched, chain
 
 from rich.segment import Segment
 from rich.style import Style
+from textual.events import MouseMove
 from textual.reactive import reactive
 from textual.strip import Strip
 from textual.widget import Widget
@@ -12,12 +13,14 @@ from chessinator_2000.gamestate import (
     GameState,
     Piece,
     PieceKind,
+    Square,
     get_occupant,
 )
 
 
 class Chessboard(Widget):
     game: reactive[GameState | None] = reactive(None)
+    hover_square: reactive[Square | None] = reactive(None)
 
     COMPONENT_CLASSES = {  # noqa: RUF012
         "chessboard--white-square",
@@ -67,29 +70,42 @@ class Chessboard(Widget):
         segments = chain.from_iterable(
             [Segment(" " * 11, bgcolor)]
             if piece is None or y % 5 in (0, 4)
-            else self._render_piece_column(piece, bgcolor, y)
+            else self._render_piece_column(piece, square, y, bgcolor)
             for column, piece in enumerate(pieces)
             if (bgcolor := black if (column + is_odd) % 2 else white)
+            and (square := (column + 1, 8 - row_index))
         )
         strip = Strip(segments, 8 * 11)
         return strip
 
+    def on_mouse_move(self, event: MouseMove) -> None:
+        self.hover_square = self._square_at(event.x, event.y)
+
+    def watch_hover_square(self, _: Square, new_square: Square) -> None:
+        self.log(new_square)
+
     def _render_piece_column(
-        self, piece: Piece, bgcolor: Style, y: int
+        self, piece: Piece, square: Square, line_y: int, bgcolor: Style
     ) -> list[Segment]:
-        return [
+        sq_y = line_y % 5
+        # if sq_y in (0, 4):
+        #     if self.hover_square == square:
+        #         return [Segment(" " * 11, Style(bgcolor=piece.color.name))]
+        #     else:
+        #         return [Segment(" " * 11, bgcolor)]
+
+        style = Style(
+            color=piece.color.flipped().name,
+            bgcolor="#808080" if square == self.hover_square else piece.color.name,
+        )
+
+        segments = [
             Segment("   ", bgcolor),
-            Segment(
-                self.pieces[piece.kind][y % 5].ljust(8)[3:],
-                Style.combine(
-                    [
-                        bgcolor,
-                        Style(
-                            color=piece.color.flipped().name,
-                            bgcolor=piece.color.name,
-                        ),
-                    ]
-                ),
-            ),
+            Segment(self.pieces[piece.kind][sq_y].ljust(8)[3:], style),
             Segment("   ", bgcolor),
         ]
+
+        return segments
+
+    def _square_at(self, x: int, y: int) -> Square:
+        return (x // 11 + 1, 8 - y // 5)
