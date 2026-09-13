@@ -5,7 +5,7 @@ from chessinator_2000.mover import Mover
 from chessinator_2000.parser import Game
 
 
-class Player(Mover):
+class Player:
     def __init__(self, app: App):
         self.app = app
 
