@@ -4,7 +4,7 @@ from itertools import batched, chain
 
 from rich.segment import Segment
 from rich.style import Style
-from textual.events import MouseMove
+from textual.events import Click, MouseMove
 from textual.reactive import reactive
 from textual.strip import Strip
 from textual.widget import Widget
@@ -20,7 +20,8 @@ from chessinator_2000.gamestate import (
 
 class Chessboard(Widget):
     game: reactive[GameState | None] = reactive(None)
-    hover_square: reactive[Square | None] = reactive(None)
+    hovered_square: reactive[Square | None] = reactive(None)
+    selected_square: reactive[Square | None] = reactive(None)
 
     COMPONENT_CLASSES = {  # noqa: RUF012
         "chessboard--white-square",
@@ -79,9 +80,18 @@ class Chessboard(Widget):
         return strip
 
     def on_mouse_move(self, event: MouseMove) -> None:
-        self.hover_square = self._square_at(event.x, event.y)
+        self.hovered_square = self._square_at(event.x, event.y)
 
-    def watch_hover_square(self, _: Square, new_square: Square) -> None:
+    def on_click(self, event: Click) -> None:
+        square = self._square_at(event.x, event.y)
+        if (
+            self.game is not None
+            and (piece := get_occupant(self.game, square)) is not None
+            and self.game.turn == piece.color
+        ):
+            self.selected_square = square
+
+    def watch_hovered_square(self, _: Square, new_square: Square) -> None:
         self.log(new_square)
 
     def _render_piece_column(
@@ -96,7 +106,11 @@ class Chessboard(Widget):
 
         style = Style(
             color=piece.color.flipped().name,
-            bgcolor="#808080" if square == self.hover_square else piece.color.name,
+            bgcolor="#808080"
+            if self.game is not None
+            and self.game.turn == piece.color
+            and square in (self.hovered_square, self.selected_square)
+            else piece.color.name,
         )
 
         segments = [
