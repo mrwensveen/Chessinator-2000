@@ -7,7 +7,7 @@ from chessinator_2000.gamestate import GameState, PieceColor
 from chessinator_2000.mover import FirstMover, RandomMover, RandomPieceMover
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.chessboard import Chessboard
-from chessinator_2000.tui.player import Player
+from chessinator_2000.tui.player import Cpu, Player
 
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
@@ -25,20 +25,13 @@ DEFAULT_GAME = Game("""
 class Chessinator2000(App):
     TITLE = "Chessinator 2000!"
 
-    game: reactive[GameState | None] = reactive(None)
+    game: reactive[GameState | None] = reactive(None)  # , recompose=True)
 
     def __init__(self, game: GameState) -> None:
         super().__init__()
-        self.game = game
 
         # TODO: Player/CPU selection screen
-        # self.movers = frozendict(
-        #     {
-        #         PieceColor.WHITE: Player(self),
-        #         PieceColor.BLACK: Player(self),
-        #         # PieceColor.BLACK: RandomPieceMover(),
-        #     }  # pyright: ignore[reportCallIssue]
-        # )
+        self.game = game
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -49,34 +42,19 @@ class Chessinator2000(App):
 
     def on_mount(self) -> None:
         """Event handler called when widget is added to the app."""
-        self.log("mount")
-        # self.update_timer = self.set_interval(0.05, self.update_game)
+        self.players = [
+            Cpu(self, PieceColor.WHITE, RandomMover()),
+            # Cpu(self, PieceColor.BLACK, RandomMover()),
+            Player(self, PieceColor.BLACK),
+        ]
+
+        def start_game():
+            self.mutate_reactive(Chessinator2000.game)
+
+        self.set_timer(0.1, start_game)
 
     def on_load(self) -> None:
         self.log("In the log handler!", pi=3.141529)
 
     def on_button_pressed(self) -> None:
         self.game = DEFAULT_GAME
-
-        # self.update_timer.stop()
-        # self.update_timer = self.set_interval(0.05, self.update_game)
-
-    # def update_game(self) -> None:
-    #     if self.game is None:
-    #         return
-
-    #     if len(self.game.board) == 2:
-    #         self.update_timer.stop()
-
-    #     move = self.movers[self.game.turn].move(self.game)
-
-    #     if move is not None:
-    #         self.game = move
-    #     else:
-    #         self.update_timer.stop()
-
-    # def on_button_pressed(self) -> None:
-    #     self.exit()
-
-    # def watch_game(self, game: GameState) -> None:
-    #     return

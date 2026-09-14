@@ -91,8 +91,8 @@ class Chessboard(Widget):
         ):
             self.selected_square = square
 
-    def watch_hovered_square(self, _: Square, new_square: Square) -> None:
-        self.log(new_square)
+    def watch_hovered_square(self, square: Square) -> None:
+        self.log(square)
 
     def _render_piece_column(
         self, piece: Piece, square: Square, line_y: int, bgcolor: Style
