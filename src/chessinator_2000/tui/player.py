@@ -1,14 +1,17 @@
-from typing import TYPE_CHECKING
+from textual.app import App
+from textual.message import Message
 
 from chessinator_2000.gamestate import GameState, PieceColor
 from chessinator_2000.mover import Mover
 
-if TYPE_CHECKING:
-    from chessinator_2000.tui.app import Chessinator2000
 
+class MoveMessage(Message):
+    def __init__(self, move: GameState | None) -> None:
+        super().__init__()
+        self.move = move
 
 class Player:
-    def __init__(self, app: Chessinator2000, color: PieceColor):
+    def __init__(self, app: App, color: PieceColor):
         self.app = app
         self.color = color
 
@@ -22,7 +25,7 @@ class Player:
 
 
 class Cpu:
-    def __init__(self, app: Chessinator2000, color: PieceColor, mover: Mover):
+    def __init__(self, app: App, color: PieceColor, mover: Mover):
         self.app = app
         self.color = color
         self.mover = mover
@@ -36,6 +39,6 @@ class Cpu:
 
         def do_move():
             move = self.mover.move(game)
-            self.app.game = move
+            self.app.post_message(MoveMessage(move))
 
-        self.app.set_timer(1.5, do_move)
+        self.app.set_timer(1, do_move)

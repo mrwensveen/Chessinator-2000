@@ -7,7 +7,7 @@ from chessinator_2000.gamestate import GameState, PieceColor
 from chessinator_2000.mover import FirstMover, RandomMover, RandomPieceMover
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.chessboard import Chessboard
-from chessinator_2000.tui.player import Cpu, Player
+from chessinator_2000.tui.player import Cpu, MoveMessage, Player
 
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
@@ -25,7 +25,7 @@ DEFAULT_GAME = Game("""
 class Chessinator2000(App):
     TITLE = "Chessinator 2000!"
 
-    game: reactive[GameState | None] = reactive(None)  # , recompose=True)
+    game: reactive[GameState | None] = reactive(None)
 
     def __init__(self, game: GameState) -> None:
         super().__init__()
@@ -44,8 +44,8 @@ class Chessinator2000(App):
         """Event handler called when widget is added to the app."""
         self.players = [
             Cpu(self, PieceColor.WHITE, RandomMover()),
-            # Cpu(self, PieceColor.BLACK, RandomMover()),
-            Player(self, PieceColor.BLACK),
+            Cpu(self, PieceColor.BLACK, RandomMover()),
+            # Player(self, PieceColor.BLACK),
         ]
 
         def start_game():
@@ -53,8 +53,8 @@ class Chessinator2000(App):
 
         self.set_timer(0.1, start_game)
 
-    def on_load(self) -> None:
-        self.log("In the log handler!", pi=3.141529)
-
     def on_button_pressed(self) -> None:
         self.game = DEFAULT_GAME
+
+    def on_move_message(self, event: MoveMessage):
+        self.game = event.move
