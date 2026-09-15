@@ -65,7 +65,9 @@ class Chessinator2000(App):
         self.game = DEFAULT_GAME
 
     def on_chessboard_square_selected(self, event: Chessboard.SquareSelected) -> None:
-        self.selected_square = event.square
+        self.selected_square = (
+            event.square if self.selected_square != event.square else None
+        )
 
     def on_chessboard_choice_selected(self, event: Chessboard.ChoiceSelected) -> None:
         self.chosen_square = event.square
