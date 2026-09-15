@@ -4,6 +4,8 @@ from itertools import batched, chain
 
 from rich.segment import Segment
 from rich.style import Style
+from textual.events import Click, Leave, MouseMove
+from textual.message import Message
 from textual.reactive import reactive
 from textual.strip import Strip
 from textual.widget import Widget
@@ -12,16 +14,16 @@ from chessinator_2000.gamestate import (
     GameState,
     Piece,
     PieceKind,
+    Square,
     get_occupant,
 )
 
 
 class Chessboard(Widget):
-    game: reactive[GameState | None] = reactive(None)
-
     COMPONENT_CLASSES = {  # noqa: RUF012
         "chessboard--white-square",
         "chessboard--black-square",
+        "chessboard--action-square",
     }
 
     DEFAULT_CSS = """
@@ -35,7 +37,25 @@ class Chessboard(Widget):
     Chessboard .chessboard--black-square {
         background: #004578;
     }
+    Chessboard .chessboard--action-square {
+        background: #808080;
+    }
     """
+
+    class SquareSelected(Message):
+        def __init__(self, square: Square) -> None:
+            super().__init__()
+            self.square = square
+
+    class ChoiceSelected(SquareSelected):
+        def __init__(self, square: Square) -> None:
+            super().__init__(square)
+
+    game: reactive[GameState | None] = reactive(None)
+    selected_square: reactive[Square | None] = reactive(None)
+    choice_squares: reactive[list[Square]] = reactive([])
+
+    hovered_square: reactive[Square | None] = reactive(None)
 
     def __init__(self):
         with open("pieces.txt", "r") as f:
@@ -65,31 +85,82 @@ class Chessboard(Widget):
             for column in range(8)
         ]
         segments = chain.from_iterable(
-            [Segment(" " * 11, bgcolor)]
-            if piece is None or y % 5 in (0, 4)
-            else self._render_piece_column(piece, bgcolor, y)
+            self._render_empty_square_line(square, y, bgcolor)
+            if piece is None
+            else self._render_piece_square_line(piece, square, y, bgcolor)
             for column, piece in enumerate(pieces)
             if (bgcolor := black if (column + is_odd) % 2 else white)
+            and (square := (column + 1, 8 - row_index))
         )
         strip = Strip(segments, 8 * 11)
         return strip
 
-    def _render_piece_column(
-        self, piece: Piece, bgcolor: Style, y: int
+    def on_mouse_move(self, event: MouseMove) -> None:
+        self.hovered_square = self._square_at(event.x, event.y)
+
+    def on_leave(self, event: Leave) -> None:
+        self.hovered_square = None
+
+    def on_click(self, event: Click) -> None:
+        if self.game is None:
+            return
+
+        square = self._square_at(event.x, event.y)
+        if (
+            piece := get_occupant(self.game, square)
+        ) is not None and self.game.turn == piece.color:
+            self.post_message(self.SquareSelected(square))
+            return
+
+        if square in self.choice_squares:
+            self.post_message(self.ChoiceSelected(square))
+            return
+
+    def watch_hovered_square(self, square: Square) -> None:
+        self.log(square)
+
+    def _render_empty_square_line(
+        self, square: Square, line_y: int, bgcolor: Style
     ) -> list[Segment]:
+        sq_y = line_y % 5
+        if sq_y in (0, 4) or square not in self.choice_squares:
+            return [Segment(" " * 11, bgcolor)]
+
+        action_square_style = self.get_component_rich_style("chessboard--action-square")
         return [
             Segment("   ", bgcolor),
-            Segment(
-                self.pieces[piece.kind][y % 5].ljust(8)[3:],
-                Style.combine(
-                    [
-                        bgcolor,
-                        Style(
-                            color=piece.color.flipped().name,
-                            bgcolor=piece.color.name,
-                        ),
-                    ]
-                ),
-            ),
+            Segment("     ", action_square_style),
             Segment("   ", bgcolor),
         ]
+
+    def _render_piece_square_line(
+        self, piece: Piece, square: Square, line_y: int, bgcolor: Style
+    ) -> list[Segment]:
+        sq_y = line_y % 5
+        if sq_y in (0, 4):
+            return [Segment(" " * 11, bgcolor)]
+
+        bgcolor_piece = (
+            self.get_component_rich_style("chessboard--action-square").bgcolor
+            if self.game is not None
+            and self.game.turn == piece.color
+            and square in (self.hovered_square, self.selected_square)
+            or square in self.choice_squares
+            else piece.color.name
+        )
+
+        style = Style(
+            color=piece.color.flipped().name,
+            bgcolor=bgcolor_piece,
+        )
+
+        segments = [
+            Segment("   ", bgcolor),
+            Segment(self.pieces[piece.kind][sq_y].ljust(8)[3:], style),
+            Segment("   ", bgcolor),
+        ]
+
+        return segments
+
+    def _square_at(self, x: int, y: int) -> Square:
+        return (x // 11 + 1, 8 - y // 5)
