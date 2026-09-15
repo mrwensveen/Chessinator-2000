@@ -47,6 +47,10 @@ class Chessboard(Widget):
             super().__init__()
             self.square = square
 
+    class ChoiceSelected(SquareSelected):
+        def __init__(self, square: Square) -> None:
+            super().__init__(square)
+
     game: reactive[GameState | None] = reactive(None)
     selected_square: reactive[Square | None] = reactive(None)
     choice_squares: reactive[list[Square]] = reactive([])
@@ -81,9 +85,9 @@ class Chessboard(Widget):
             for column in range(8)
         ]
         segments = chain.from_iterable(
-            [Segment(" " * 11, bgcolor)]
-            if piece is None or y % 5 in (0, 4)
-            else self._render_piece_column_line(piece, square, y, bgcolor)
+            self._render_empty_square_line(square, y, bgcolor)
+            if piece is None
+            else self._render_piece_square_line(piece, square, y, bgcolor)
             for column, piece in enumerate(pieces)
             if (bgcolor := black if (column + is_odd) % 2 else white)
             and (square := (column + 1, 8 - row_index))
@@ -98,30 +102,52 @@ class Chessboard(Widget):
         self.hovered_square = None
 
     def on_click(self, event: Click) -> None:
+        if self.game is None:
+            return
+
         square = self._square_at(event.x, event.y)
         if (
-            self.game is not None
-            and (piece := get_occupant(self.game, square)) is not None
-            and self.game.turn == piece.color
-        ):
-            # self.selected_square = square
+            piece := get_occupant(self.game, square)
+        ) is not None and self.game.turn == piece.color:
             self.post_message(self.SquareSelected(square))
+            return
+
+        if square in self.choice_squares:
+            self.post_message(self.ChoiceSelected(square))
+            return
 
     def watch_hovered_square(self, square: Square) -> None:
         self.log(square)
 
-    def _render_piece_column_line(
+    def _render_empty_square_line(
+        self, square: Square, line_y: int, bgcolor: Style
+    ) -> list[Segment]:
+        sq_y = line_y % 5
+        if sq_y in (0, 4) or square not in self.choice_squares:
+            return [Segment(" " * 11, bgcolor)]
+
+        action_square_style = self.get_component_rich_style("chessboard--action-square")
+        return [
+            Segment("   ", bgcolor),
+            Segment("     ", action_square_style),
+            Segment("   ", bgcolor),
+        ]
+
+    def _render_piece_square_line(
         self, piece: Piece, square: Square, line_y: int, bgcolor: Style
     ) -> list[Segment]:
+        sq_y = line_y % 5
+        if sq_y in (0, 4):
+            return [Segment(" " * 11, bgcolor)]
+
         bgcolor_piece = (
             self.get_component_rich_style("chessboard--action-square").bgcolor
             if self.game is not None
             and self.game.turn == piece.color
             and square in (self.hovered_square, self.selected_square)
+            or square in self.choice_squares
             else piece.color.name
         )
-
-        sq_y = line_y % 5
 
         style = Style(
             color=piece.color.flipped().name,
