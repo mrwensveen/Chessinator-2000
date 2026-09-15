@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from itertools import chain
 
 from textual.app import App
 from textual.message import Message
@@ -8,10 +8,9 @@ from chessinator_2000.gamestate import (
     PieceColor,
     Square,
     get_occupant,
-    get_possible_moves,
+    get_piece_moves,
 )
 from chessinator_2000.mover import Mover
-from chessinator_2000.utils import groupby
 
 
 class PlayerMoved(Message):
@@ -29,7 +28,7 @@ class PlayerChoicesChanged(Message):
 class Player:
     game: GameState | None = None
     selected_quare: Square | None = None
-    moves: frozendict[Square, Iterable[GameState]] = frozendict()
+    choice_moves: tuple[GameState, ...] = ()
 
     def __init__(self, app: App, color: PieceColor):
         self.app = app
@@ -47,39 +46,39 @@ class Player:
 
         self.game = game
         self.selected_quare = None
-        self.moves = (
-            frozendict()
-            if game.turn != self.color
-            else groupby(
-                get_possible_moves(game),
-                lambda move: next(iter(game.board.keys() - move.board.keys())),
-            )
-        )
 
     def handle_update_selected_square(self, square: Square) -> None:
-        if (game := self.game) is None or game.turn != self.color:
+        if (
+            (game := self.game) is None
+            or game.turn != self.color
+            or (piece := get_occupant(game, square)) is None
+        ):
             return
 
         self.selected_quare = square
-        selected_moves = self.moves.get(square, [])
+
+        piece_moves = tuple(get_piece_moves(game, square, piece))
+        self.choice_moves = piece_moves
 
         def _color_squares(g: GameState) -> set[Square]:
             return {s for s, p in g.board.items() if p.color == self.color}
 
         game_squares = _color_squares(game)
-        choices = [
-            next(iter(_color_squares(move) - game_squares)) for move in selected_moves
-        ]
+        choices = list(
+            chain.from_iterable(
+                iter(_color_squares(move) - game_squares) for move in piece_moves
+            )
+        )
         self.app.post_message(PlayerChoicesChanged(choices))
 
     def handle_update_chosen_square(self, square: Square) -> None:
-        if (selected_square := self.selected_quare) is None:
+        if not self.choice_moves:
             return
 
         move = next(
             iter(
                 move
-                for move in self.moves.get(selected_square, [])
+                for move in self.choice_moves
                 if (occupant := get_occupant(move, square)) is not None
                 and occupant.color == self.color
             ),

@@ -34,7 +34,7 @@ class Chessinator2000(App):
         super().__init__()
 
         # TODO: Player/CPU selection screen
-        self.game = game
+        self.set_reactive(Chessinator2000.game, game)
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -65,9 +65,11 @@ class Chessinator2000(App):
         self.game = DEFAULT_GAME
 
     def on_chessboard_square_selected(self, event: Chessboard.SquareSelected) -> None:
-        self.selected_square = (
-            event.square if self.selected_square != event.square else None
-        )
+        if event.square == self.selected_square:
+            self.selected_square = None
+            self.choice_squares = []
+        else:
+            self.selected_square = event.square
 
     def on_chessboard_choice_selected(self, event: Chessboard.ChoiceSelected) -> None:
         self.chosen_square = event.square

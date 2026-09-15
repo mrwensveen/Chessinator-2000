@@ -193,7 +193,7 @@ def _is_check(game: GameState) -> bool:
 
 
 def get_piece_moves(
-    game: GameState, position: Square, piece: Piece, castling_allowed: bool
+    game: GameState, position: Square, piece: Piece, castling_allowed: bool = True
 ) -> list[GameState]:
     match piece.kind:
         case PieceKind.PAWN:
