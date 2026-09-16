@@ -58,7 +58,7 @@ class GameState:
             else "stalemate"
         )
 
-    def move(self, piece: Piece, src: Square, dst: Square, next_turn=True) -> GameState:
+    def move(self, piece: Piece, src: Square, dst: Square) -> GameState:
         # Mark an en-passant possibility if the current player's pawn moves two forward as its initial
         # move
         en_passant: tuple[Square, Square] | None = (
@@ -88,7 +88,7 @@ class GameState:
 
         return GameState(
             board=board,
-            turn=self.turn.flipped() if next_turn else self.turn,
+            turn=self.turn.flipped(),
             en_passant=en_passant,
         )
 
@@ -161,27 +161,16 @@ def get_pieces(
 
 
 def get_possible_moves(
-    game: GameState, check_check: bool = True
+    game: GameState, *, check_check: bool = True
 ) -> Iterable[GameState]:
-    # print(f"\033[92m{game}\033[0m", file=sys.stderr)
-
-    # All moves, including those that put the king in an attacked position
-    potential_moves = chain.from_iterable(
-        get_piece_moves(game, position, piece, castling_allowed=check_check)
+    return chain.from_iterable(
+        get_piece_moves(game, position, piece, check_check=check_check)
         for position, piece in game.board.items()
         if piece.color == game.turn
     )
 
-    # Don't check for check
-    if not check_check:
-        return potential_moves
-
-    # Remove the moves that result in check
-    return (move for move in potential_moves if not _is_check(move))
-
 
 def _is_check(game: GameState) -> bool:
-    # print(f"\033[92m{game}\033[0m", file=sys.stderr)
     king_positions = get_pieces(game, game.turn.flipped(), PieceKind.KING).keys()
     attackers = any(
         chain.from_iterable(
@@ -193,19 +182,29 @@ def _is_check(game: GameState) -> bool:
 
 
 def get_piece_moves(
-    game: GameState, position: Square, piece: Piece, castling_allowed: bool = True
+    game: GameState,
+    position: Square,
+    piece: Piece,
+    *,
+    check_check: bool = True,
 ) -> list[GameState]:
+    piece_moves: list[GameState]
     match piece.kind:
         case PieceKind.PAWN:
-            return pawn_moves(game, position)
+            piece_moves = pawn_moves(game, position)
         case PieceKind.KNIGHT:
-            return knight_moves(game, position)
+            piece_moves = knight_moves(game, position)
         case PieceKind.KING:
-            return king_moves(game, position, castling_allowed=castling_allowed)
+            piece_moves = king_moves(game, position, castling_allowed=check_check)
         case PieceKind.QUEEN | PieceKind.ROOK | PieceKind.BISHOP:
-            return slide_moves(game, position)
+            piece_moves = slide_moves(game, position)
         case _:
-            return []
+            piece_moves = []
+
+    if not check_check:
+        return piece_moves
+
+    return [move for move in piece_moves if not _is_check(move)]
 
 
 def pawn_moves(game: GameState, position: Square) -> list[GameState]:
