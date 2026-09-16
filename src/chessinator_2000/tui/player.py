@@ -20,7 +20,7 @@ class PlayerMoved(Message):
 
 
 class PlayerChoicesChanged(Message):
-    def __init__(self, squares: list[Square]) -> None:
+    def __init__(self, squares: frozenset[Square]) -> None:
         super().__init__()
         self.squares = squares
 
@@ -41,13 +41,16 @@ class Player:
         app.watch(app, "chosen_square", self.handle_update_chosen_square, init=False)
 
     def handle_update_game(self, game: GameState) -> None:
-        if game.turn == self.color:
-            self.app.log(f"Player: {self.color}")
+        # if game.turn == self.color:
+        #     self.app.log(f"Player: {self.color}")
 
         self.game = game
         self.selected_quare = None
 
-    def handle_update_selected_square(self, square: Square) -> None:
+    def handle_update_selected_square(self, square: Square | None) -> None:
+        if square is None:
+            return
+
         if (
             (game := self.game) is None
             or game.turn != self.color
@@ -64,14 +67,18 @@ class Player:
             return {s for s, p in g.board.items() if p.color == self.color}
 
         game_squares = _color_squares(game)
-        choices = list(
+        choices = frozenset(
             chain.from_iterable(
                 iter(_color_squares(move) - game_squares) for move in piece_moves
             )
         )
         self.app.post_message(PlayerChoicesChanged(choices))
 
-    def handle_update_chosen_square(self, square: Square) -> None:
+    def handle_update_chosen_square(self, square: Square | None) -> None:
+        if square is None:
+            return
+
+        self.app.log(f"handle_update_chosen_square: {square}")
         if not self.choice_moves:
             return
 
@@ -99,7 +106,7 @@ class Cpu:
         if game.turn != self.color:
             return
 
-        self.app.log(f"Cpu({type(self.mover).__name__}): {self.color}")
+        # self.app.log(f"Cpu({type(self.mover).__name__}): {self.color}")
 
         def do_move():
             move = self.mover.move(game)

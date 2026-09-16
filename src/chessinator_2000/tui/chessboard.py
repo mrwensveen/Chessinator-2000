@@ -53,9 +53,10 @@ class Chessboard(Widget):
 
     game: reactive[GameState | None] = reactive(None)
     selected_square: reactive[Square | None] = reactive(None)
-    choice_squares: reactive[list[Square]] = reactive([])
+    choice_squares: reactive[frozenset[Square]] = reactive(frozenset())
 
     hovered_square: reactive[Square | None] = reactive(None)
+    highlighted_squares: reactive[frozenset[Square]] = reactive(frozenset())
 
     def __init__(self):
         with open("pieces.txt", "r") as f:
@@ -116,17 +117,18 @@ class Chessboard(Widget):
             self.post_message(self.ChoiceSelected(square))
             return
 
-    def watch_hovered_square(self, square: Square) -> None:
-        self.log(square)
+    # def watch_hovered_square(self, square: Square) -> None:
+    #     self.log(square)
 
     def _render_empty_square_line(
         self, square: Square, line_y: int, bgcolor: Style
     ) -> list[Segment]:
+        action_square_style = self.get_component_rich_style("chessboard--action-square")
+
         sq_y = line_y % 5
         if sq_y in (0, 4) or square not in self.choice_squares:
             return [Segment(" " * 11, bgcolor)]
 
-        action_square_style = self.get_component_rich_style("chessboard--action-square")
         return [
             Segment("   ", bgcolor),
             Segment("     ", action_square_style),
@@ -136,12 +138,14 @@ class Chessboard(Widget):
     def _render_piece_square_line(
         self, piece: Piece, square: Square, line_y: int, bgcolor: Style
     ) -> list[Segment]:
+        action_square_style = self.get_component_rich_style("chessboard--action-square")
+
         sq_y = line_y % 5
         if sq_y in (0, 4):
             return [Segment(" " * 11, bgcolor)]
 
         bgcolor_piece = (
-            self.get_component_rich_style("chessboard--action-square").bgcolor
+            action_square_style.bgcolor
             if self.game is not None
             and self.game.turn == piece.color
             and square in (self.hovered_square, self.selected_square)

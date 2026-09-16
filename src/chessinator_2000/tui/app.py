@@ -27,7 +27,7 @@ class Chessinator2000(App):
 
     game: reactive[GameState | None] = reactive(None)
     selected_square: reactive[Square | None] = reactive(None)
-    choice_squares: reactive[list[Square]] = reactive([])
+    choice_squares: reactive[frozenset[Square]] = reactive(frozenset())
     chosen_square: reactive[Square | None] = reactive(None)
 
     def __init__(self, game: GameState) -> None:
@@ -67,17 +67,24 @@ class Chessinator2000(App):
     def on_chessboard_square_selected(self, event: Chessboard.SquareSelected) -> None:
         if event.square == self.selected_square:
             self.selected_square = None
-            self.choice_squares = []
+            self.choice_squares = frozenset()
         else:
             self.selected_square = event.square
 
     def on_chessboard_choice_selected(self, event: Chessboard.ChoiceSelected) -> None:
+        self.log(
+            f"on_chessboard_choice_selected, current: {self.chosen_square}, new: {event.square}"
+        )
         self.chosen_square = event.square
 
     def on_player_moved(self, event: PlayerMoved) -> None:
+        self.query_one(Chessboard).highlighted_squares = frozenset(
+            s for s in (self.selected_square, self.chosen_square) if s is not None
+        )
         self.game = event.move
+        self.chosen_square = None
         self.selected_square = None
-        self.choice_squares = []
+        self.choice_squares = frozenset()
 
     def on_player_choices_changed(self, event: PlayerChoicesChanged) -> None:
         self.choice_squares = event.squares
