@@ -41,14 +41,11 @@ class Player:
         app.watch(app, "chosen_square", self.handle_update_chosen_square, init=False)
 
     def handle_update_game(self, game: GameState) -> None:
-        # if game.turn == self.color:
-        #     self.app.log(f"Player: {self.color}")
-
         self.game = game
         self.selected_quare = None
 
     def handle_update_selected_square(self, square: Square | None) -> None:
-        if square is None:
+        if self.game is None or self.game.turn != self.color or square is None:
             return
 
         if (
@@ -75,10 +72,9 @@ class Player:
         self.app.post_message(PlayerChoicesChanged(choices))
 
     def handle_update_chosen_square(self, square: Square | None) -> None:
-        if square is None:
+        if self.game is None or self.game.turn != self.color or square is None:
             return
 
-        self.app.log(f"handle_update_chosen_square: {square}")
         if not self.choice_moves:
             return
 
@@ -105,8 +101,6 @@ class Cpu:
     def handle_update_game(self, game: GameState) -> None:
         if game.turn != self.color:
             return
-
-        # self.app.log(f"Cpu({type(self.mover).__name__}): {self.color}")
 
         def do_move():
             move = self.mover.move(game)

@@ -125,13 +125,15 @@ class Chessboard(Widget):
     ) -> list[Segment]:
         action_square_style = self.get_component_rich_style("chessboard--action-square")
 
+        inner_style = action_square_style if square in self.choice_squares else bgcolor
+
         sq_y = line_y % 5
-        if sq_y in (0, 4) or square not in self.choice_squares:
-            return [Segment(" " * 11, bgcolor)]
+        if sq_y in (0, 4):
+            return self._render_top_bottom(square, bgcolor, action_square_style)
 
         return [
             Segment("   ", bgcolor),
-            Segment("     ", action_square_style),
+            Segment("     ", inner_style),
             Segment("   ", bgcolor),
         ]
 
@@ -142,7 +144,7 @@ class Chessboard(Widget):
 
         sq_y = line_y % 5
         if sq_y in (0, 4):
-            return [Segment(" " * 11, bgcolor)]
+            return self._render_top_bottom(square, bgcolor, action_square_style)
 
         bgcolor_piece = (
             action_square_style.bgcolor
@@ -165,6 +167,19 @@ class Chessboard(Widget):
         ]
 
         return segments
+
+    def _render_top_bottom(
+        self, square: Square, bgcolor: Style, action_style: Style
+    ) -> list[Segment]:
+        return (
+            [Segment(" " * 11, bgcolor)]
+            if square not in self.highlighted_squares
+            else [
+                Segment(" ", action_style),
+                Segment(" " * 9, bgcolor),
+                Segment(" ", action_style),
+            ]
+        )
 
     def _square_at(self, x: int, y: int) -> Square:
         return (x // 11 + 1, 8 - y // 5)
