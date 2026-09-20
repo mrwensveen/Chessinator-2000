@@ -11,7 +11,6 @@ from chessinator_2000.gamestate import (
     get_piece_moves,
 )
 from chessinator_2000.mover import Mover
-from chessinator_2000.tui.chessboard import Chessboard
 
 
 class PlayerMoved(Message):
@@ -42,9 +41,6 @@ class Player:
         app.watch(app, "chosen_square", self.handle_update_chosen_square, init=False)
 
     def handle_update_game(self, game: GameState) -> None:
-        # if game.turn == self.color:
-        #     self.app.log(f"Player: {self.color}")
-
         self.game = game
         self.selected_quare = None
 
@@ -79,7 +75,6 @@ class Player:
         if self.game is None or self.game.turn != self.color or square is None:
             return
 
-        self.app.log(f"handle_update_chosen_square: {square}")
         if not self.choice_moves:
             return
 
@@ -107,27 +102,8 @@ class Cpu:
         if game.turn != self.color:
             return
 
-        # self.app.log(f"Cpu({type(self.mover).__name__}): {self.color}")
-
         def do_move():
             move = self.mover.move(game)
-            if move is not None:
-                game_squares = {
-                    square
-                    for square, piece in game.board.items()
-                    if piece.color == self.color
-                }
-                move_squares = {
-                    square
-                    for square, piece in move.board.items()
-                    if piece.color == self.color
-                }
-                if (src := next(iter(game_squares - move_squares), None)) is not None:
-                    self.app.post_message(Chessboard.SquareSelected(src))
-
-                if (dst := next(iter(move_squares - game_squares), None)) is not None:
-                    self.app.post_message(Chessboard.ChoiceSelected(dst))
-
             self.app.post_message(PlayerMoved(move))
 
         self.app.set_timer(1, do_move)

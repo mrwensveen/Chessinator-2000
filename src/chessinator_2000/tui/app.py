@@ -4,7 +4,7 @@ from textual.reactive import reactive
 from textual.widgets import Button, Header
 
 from chessinator_2000.gamestate import GameState, PieceColor, Square
-from chessinator_2000.mover import FirstMover, RandomMover, RandomPieceMover
+from chessinator_2000.mover import RandomPieceMover
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.chessboard import Chessboard
 from chessinator_2000.tui.player import Cpu, Player, PlayerChoicesChanged, PlayerMoved
@@ -78,13 +78,31 @@ class Chessinator2000(App):
         self.chosen_square = event.square
 
     def on_player_moved(self, event: PlayerMoved) -> None:
-        self.query_one(Chessboard).highlighted_squares = frozenset(
-            s for s in (self.selected_square, self.chosen_square) if s is not None
-        )
+        self._highlight_move(event)
         self.game = event.move
+
         self.chosen_square = None
         self.selected_square = None
         self.choice_squares = frozenset()
 
     def on_player_choices_changed(self, event: PlayerChoicesChanged) -> None:
         self.choice_squares = event.squares
+
+    def _highlight_move(self, event: PlayerMoved) -> None:
+        if self.game is not None and event.move is not None:
+            game_squares = {
+                square
+                for square, piece in self.game.board.items()
+                if piece.color == self.game.turn
+            }
+            move_squares = {
+                square
+                for square, piece in event.move.board.items()
+                if piece.color == self.game.turn
+            }
+
+            src = next(iter(game_squares - move_squares), None)
+            dst = next(iter(move_squares - game_squares), None)
+            self.query_one(Chessboard).highlighted_squares = frozenset(
+                sq for sq in (src, dst) if sq is not None
+            )
