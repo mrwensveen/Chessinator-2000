@@ -120,7 +120,7 @@ def main() -> None:
     #     #     moves = list(get_possible_moves(game))
     #     # except RecursionError as ex:
     #     #     print("ERROR", file=sys.stderr)
-    #     #     print(game) ̲P̲P
+    #     #     print(game)
     #     #     return
 
     #     moves = list(get_possible_moves(game))

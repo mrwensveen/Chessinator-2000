@@ -9,6 +9,7 @@ from chessinator_2000.gamestate import (
     Square,
     get_occupant,
     get_piece_moves,
+    get_possible_moves,
 )
 from chessinator_2000.mover import Mover
 
@@ -43,6 +44,14 @@ class Player:
     def handle_update_game(self, game: GameState | None) -> None:
         self.game = game
         self.selected_quare = None
+
+        # TODO: This is very inefficient, probably
+        if (
+            game is None
+            or len(game.board) <= 2
+            or len(list(get_possible_moves(game))) == 0
+        ):
+            self.app.post_message(PlayerMoved(None))
 
     def handle_update_selected_square(self, square: Square | None) -> None:
         if self.game is None or self.game.turn != self.color or square is None:
@@ -103,7 +112,7 @@ class Cpu:
             return
 
         def do_move():
-            move = self.mover.move(game)
+            move = self.mover.move(game) if len(game.board) >= 2 else None
             self.app.post_message(PlayerMoved(move))
 
         self.app.set_timer(1, do_move)

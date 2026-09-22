@@ -33,6 +33,6 @@ class EndScreen(ModalScreen):
         yield Grid(
             Label(status.capitalize(), id="status"),
             Button("Quit", id="quit", variant="error"),
-            Button("Restart", id="restart", variant="primary", disabled=True),
+            Button("Play again", id="restart", variant="primary", disabled=True),
             id="dialog",
         )

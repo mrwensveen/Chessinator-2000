@@ -12,22 +12,33 @@ from chessinator_2000.tui.player import PlayerChoicesChanged, PlayerMoved
 from chessinator_2000.tui.screens.end import EndScreen
 from chessinator_2000.tui.screens.start import StartScreen
 
+# DEFAULT_GAME = Game("""
+#     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
+#     |p̃|p̃|p̃|p̃|p̃|p̃|p̃|p̃|
+#     | | | | | | | | |
+#     | | | | | | | | |
+#     | | | | | | | | |
+#     | | | | | | | | |
+#     |P̃|P̃|P̃|P̃|P̃|P̃|P̃|P̃|
+#     |R̃|Ñ|B̃|Q̃|K̃|B̃|Ñ|R̃|
+#     turn=WHITE
+# """)
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
-    |p̃|p̃|p̃|p̃|p̃|p̃|p̃|p̃|
+    |q|q|q|q|q|q|q|q|
     | | | | | | | | |
     | | | | | | | | |
     | | | | | | | | |
     | | | | | | | | |
-    |P̃|P̃|P̃|P̃|P̃|P̃|P̃|P̃|
-    |R̃|Ñ|B̃|Q̃|K̃|B̃|Ñ|R̃|
+    | | | | |Q| | | |
+    | | | | |K̃| | | |
     turn=WHITE
 """)
 
 
 class Chessinator2000(App):
     TITLE = "Chessinator 2000!"
-    SCREENS = {"start": StartScreen, "end": EndScreen}  # noqa: RUF012
+    SCREENS = {"start": StartScreen}  # noqa: RUF012
     CSS_PATH = "app.tcss"
 
     game: reactive[GameState | None] = reactive(None)
@@ -108,7 +119,7 @@ class Chessinator2000(App):
 
     def on_player_moved(self, event: PlayerMoved) -> None:
         if event.move is None:
-            self.push_screen(EndScreen(game))
+            self.push_screen(EndScreen(self.game))
 
         self._highlight_move(event)
         self.game = event.move
