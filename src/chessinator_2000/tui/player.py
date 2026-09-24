@@ -47,9 +47,9 @@ class Player:
 
         # TODO: This is very inefficient, probably
         if (
-            game is None
-            or len(game.board) <= 2
-            or len(list(get_possible_moves(game))) == 0
+            game is not None
+            and game.turn == self.color
+            and (len(game.board) <= 2 or len(list(get_possible_moves(game))) == 0)
         ):
             self.app.post_message(PlayerMoved(None))
 

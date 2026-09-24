@@ -33,6 +33,12 @@ class EndScreen(ModalScreen):
         yield Grid(
             Label(status.capitalize(), id="status"),
             Button("Quit", id="quit", variant="error"),
-            Button("Play again", id="restart", variant="primary", disabled=True),
+            Button("Play again", id="restart", variant="primary"),
             id="dialog",
         )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "quit":
+            self.app.exit()
+        else:
+            self.dismiss()
