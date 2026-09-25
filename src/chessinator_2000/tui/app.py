@@ -1,14 +1,14 @@
 from collections.abc import Callable
 
 from textual.app import App, ComposeResult
-from textual.containers import CenterMiddle
+from textual.containers import CenterMiddle, HorizontalGroup
 from textual.reactive import reactive
-from textual.widgets import Header
+from textual.widgets import Button, Header
 
-from chessinator_2000.gamestate import GameState, PieceColor, Square
+from chessinator_2000.gamestate import GameState, PieceColor, Square, get_previous_games
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.chessboard import Chessboard
-from chessinator_2000.tui.player import PlayerChoicesChanged, PlayerMoved
+from chessinator_2000.tui.player import Player, PlayerChoicesChanged, PlayerMoved
 from chessinator_2000.tui.screens.end import EndScreen
 from chessinator_2000.tui.screens.start import StartScreen
 
@@ -49,16 +49,39 @@ class Chessinator2000(App):
                 .data_bind(Chessinator2000.selected_square)
                 .data_bind(Chessinator2000.choice_squares)
             )
+        with HorizontalGroup():
+            yield Button("↶ Undo", id="undo", disabled=True)
+            yield Button("Restart game", id="new_game")
 
     def on_mount(self) -> None:
         self.push_screen("start", self._start_game)
 
-    def on_button_pressed(self) -> None:
-        self.game = DEFAULT_GAME
-        self.chosen_square = None
-        self.selected_square = None
-        self.choice_squares = frozenset()
-        self.query_one(Chessboard).highlighted_squares = frozenset()
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id in ("undo", "new"):
+            self.chosen_square = None
+            self.selected_square = None
+            self.choice_squares = frozenset()
+            self.query_one(Chessboard).highlighted_squares = frozenset()
+
+        if (
+            event.button.id == "undo"
+            and self.game is not None
+            and self.game.previous is not None
+        ):
+            previous_player_game = next(
+                (
+                    p
+                    for p in get_previous_games(self.game)
+                    if isinstance(self.players[p.turn], Player)
+                ),
+                None,
+            )
+            if previous_player_game is not None:
+                self.game = previous_player_game
+        elif event.button.id == "new_game":
+            self.game = DEFAULT_GAME
+            self.query_one("#undo").disabled = True
+            self.push_screen("start", self._start_game)
 
     def on_chessboard_square_selected(self, event: Chessboard.SquareSelected) -> None:
         if event.square == self.selected_square:
@@ -88,6 +111,9 @@ class Chessinator2000(App):
         self.selected_square = None
         self.choice_squares = frozenset()
 
+        self.query_one("#undo").disabled = (
+            event.move is None or event.move.previous is None
+        )
 
     def on_player_choices_changed(self, event: PlayerChoicesChanged) -> None:
         self.choice_squares = event.squares

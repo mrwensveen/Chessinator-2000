@@ -47,6 +47,7 @@ class GameState:
     board: frozendict[Square, Piece]
     turn: PieceColor
     en_passant: tuple[Square, Square] | None = None
+    previous: GameState | None = None
 
     @property
     def status(self) -> Literal["in_progress", "stalemate", "checkmate"]:
@@ -54,7 +55,7 @@ class GameState:
             "in_progress"
             if any(get_possible_moves(self))
             else "checkmate"
-            if _is_check(self.skip_turn())
+            if _is_check(self.flip_turn())
             else "stalemate"
         )
 
@@ -87,14 +88,15 @@ class GameState:
         ).value()
 
         return GameState(
-            board=board,
-            turn=self.turn.flipped(),
-            en_passant=en_passant,
+            board=board, turn=self.turn.flipped(), en_passant=en_passant, previous=self
         )
 
-    def skip_turn(self) -> GameState:
+    def flip_turn(self) -> GameState:
         return GameState(
-            board=self.board, turn=self.turn.flipped(), en_passant=self.en_passant
+            board=self.board,
+            turn=self.turn.flipped(),
+            en_passant=self.en_passant,
+            previous=self.previous,
         )
 
     def __str__(self):
@@ -333,7 +335,7 @@ def king_moves(
         rook
         if not piece.moved
         and (rook := _get_castle_rook(game, y, "QS")) is not None
-        and not _is_check(game.skip_turn())
+        and not _is_check(game.flip_turn())
         and not _is_check(move_king((x - 1, y)))
         else None
     )
@@ -341,18 +343,18 @@ def king_moves(
         rook
         if not piece.moved
         and (rook := _get_castle_rook(game, y, "KS")) is not None
-        and not _is_check(game.skip_turn())
+        and not _is_check(game.flip_turn())
         and not _is_check(move_king((x + 1, y)))
         else None
     )
 
     castlings = [
         # Castling QS
-        move_king((x - 2, y)).skip_turn().move(qs_rook, (1, y), (4, y))
+        move_king((x - 2, y)).flip_turn().move(qs_rook, (1, y), (4, y))
         if qs_rook is not None
         else None,
         # Castling KS
-        move_king((x + 2, y)).skip_turn().move(ks_rook, (8, y), (6, y))
+        move_king((x + 2, y)).flip_turn().move(ks_rook, (8, y), (6, y))
         if ks_rook is not None
         else None,
     ]
@@ -430,3 +432,9 @@ def _get_castle_rook(
     )
 
     return castle_rook
+
+
+def get_previous_games(game: GameState) -> Generator[GameState]:
+    if game.previous is not None:
+        yield game.previous
+        yield from get_previous_games(game.previous)
