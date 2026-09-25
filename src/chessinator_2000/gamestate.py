@@ -39,7 +39,8 @@ class Piece:
 
     def __str__(self):
         s = "N" if self.kind == PieceKind.KNIGHT else self.kind.name[0]
-        return s.lower() if self.color == PieceColor.BLACK else s
+        p = s.lower() if self.color == PieceColor.BLACK else s
+        return f"{p}{'\u0303' if not self.moved else ''}"
 
 
 @dataclass(frozen=True)
@@ -103,7 +104,8 @@ class GameState:
         board_str = "\n".join(
             f"|{
                 '|'.join(
-                    f'\033[{"91m" if piece.color == PieceColor.WHITE else "94m"}{piece}{"\u0303" if not piece.moved else ""}\033[0m'
+                    # f'\033[{"91m" if piece.color == PieceColor.WHITE else "94m"}{piece}\033[0m'
+                    str(piece)
                     if (piece := get_occupant(self, (x, y))) is not None
                     else (
                         '↑'

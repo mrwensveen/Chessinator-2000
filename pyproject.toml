@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.15.0rc1"
 dependencies = [
     "python-fp-flow>=0.1.0.post2",
+    "sqlalchemy>=2.1.0",
     "textual>=8.2.8",
     "textual-dev>=1.8.0",
 ]
