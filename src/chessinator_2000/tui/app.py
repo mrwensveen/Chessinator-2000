@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 from textual.app import App, ComposeResult
 from textual.containers import CenterMiddle, HorizontalGroup
 from textual.reactive import reactive
@@ -10,7 +8,7 @@ from chessinator_2000.parser import Game
 from chessinator_2000.tui.chessboard import Chessboard
 from chessinator_2000.tui.player import Player, PlayerChoicesChanged, PlayerMoved
 from chessinator_2000.tui.screens.end import EndScreen
-from chessinator_2000.tui.screens.start import StartScreen
+from chessinator_2000.tui.screens.start import StartScreen, StartScreenResult
 
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
@@ -35,6 +33,7 @@ class Chessinator2000(App):
     chosen_square: reactive[Square | None] = reactive(None)
 
     players: frozendict[PieceColor, object] = frozendict()
+    allow_db: bool = False
 
     def __init__(self, game: GameState) -> None:
         super().__init__()
@@ -139,18 +138,16 @@ class Chessinator2000(App):
 
     def _start_game(
         self,
-        players: tuple[
-            Callable[[App, PieceColor], object], Callable[[App, PieceColor], object]
-        ]
-        | None,
+        start: StartScreenResult | None,
     ) -> None:
-        if players is None:
+        if start is None:
             self.push_screen("start", self._start_game)
             return
 
         self.players = frozendict() | {
-            PieceColor.WHITE: players[0](self, PieceColor.WHITE),
-            PieceColor.BLACK: players[1](self, PieceColor.BLACK),
+            PieceColor.WHITE: start.player_white(self, PieceColor.WHITE),
+            PieceColor.BLACK: start.player_black(self, PieceColor.BLACK),
         }
+        self.allow_db = start.allow_db
 
         self.mutate_reactive(Chessinator2000.game)

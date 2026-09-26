@@ -1,21 +1,25 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from textual.app import App, ComposeResult
-from textual.containers import Grid
+from textual.containers import Grid, HorizontalGroup
 from textual.reactive import reactive
 from textual.screen import ModalScreen
-from textual.widgets import Button, Label, Select
+from textual.widgets import Button, Label, Select, Switch
 
 from chessinator_2000.gamestate import PieceColor
 from chessinator_2000.mover import FirstMover, RandomMover, RandomPieceMover
 from chessinator_2000.tui.player import Cpu, Player
 
 
-class StartScreen(
-    ModalScreen[
-        tuple[Callable[[App, PieceColor], object], Callable[[App, PieceColor], object]]
-    ]
-):
+@dataclass(frozen=True)
+class StartScreenResult:
+    player_white: Callable[[App, PieceColor], object]
+    player_black: Callable[[App, PieceColor], object]
+    allow_db: bool
+
+
+class StartScreen(ModalScreen[StartScreenResult]):
     DEFAULT_CSS = """
     StartScreen {
         align: center middle;
@@ -25,6 +29,8 @@ class StartScreen(
 
     player_white: reactive[int] = reactive(0)
     player_black: reactive[int] = reactive(0)
+
+    allow_db: reactive[bool] = reactive(True)
 
     def compose(self) -> ComposeResult:
         player_options = [
@@ -38,6 +44,11 @@ class StartScreen(
             Label("Start a new game", id="question"),
             Select[int](player_options, prompt="White player", id="select_white"),
             Select[int](player_options, prompt="Black player", id="select_black"),
+            HorizontalGroup(
+                Switch(True, id="db"),
+                Label("Allow C-2000 to learn from this game", classes="label"),
+                classes="switch",
+            ),
             Button("Quit", id="quit", variant="error"),
             Button("Start", id="start", variant="primary", disabled=True),
             id="dialog",
@@ -62,11 +73,15 @@ class StartScreen(
             self.app.exit()
         else:
             self.dismiss(
-                (
+                StartScreenResult(
                     self._create_player_factory(self.player_white),
                     self._create_player_factory(self.player_black),
+                    self.allow_db,
                 )
             )
+
+    def on_switch_changes(self, event: Switch.Changed) -> None:
+        self.allow_db = event.value
 
     def _create_player_factory(
         self, option: int
