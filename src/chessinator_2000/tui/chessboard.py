@@ -4,7 +4,7 @@ from itertools import batched, chain
 
 from rich.segment import Segment
 from rich.style import Style
-from textual.events import Click, Leave, MouseMove
+from textual.events import MouseMove
 from textual.message import Message
 from textual.reactive import reactive
 from textual.strip import Strip
@@ -13,6 +13,7 @@ from textual.widget import Widget
 from chessinator_2000.gamestate import (
     GameState,
     Piece,
+    PieceColor,
     PieceKind,
     Square,
     get_occupant,
@@ -26,21 +27,14 @@ class Chessboard(Widget):
         "chessboard--action-square",
     }
 
-    DEFAULT_CSS = """
-    Chessboard {
-        width: 88;
-        height: 40;
-    }
-    Chessboard .chessboard--white-square {
-        background: #A5BAC9;
-    }
-    Chessboard .chessboard--black-square {
-        background: #004578;
-    }
-    Chessboard .chessboard--action-square {
-        background: #808080;
-    }
-    """
+    BINDINGS = [  # noqa: RUF012
+        ("left", "move_hover((-1, 0))"),
+        ("right", "move_hover((1, 0))"),
+        ("up", "move_hover((0, 1))"),
+        ("down", "move_hover((0, -1))"),
+        ("space", "select()"),
+        ("enter", "select()"),
+    ]
 
     class SquareSelected(Message):
         def __init__(self, square: Square) -> None:
@@ -59,6 +53,8 @@ class Chessboard(Widget):
     highlighted_squares: reactive[frozenset[Square]] = reactive(frozenset())
 
     def __init__(self):
+        self.can_focus = True
+
         with open("pieces.txt", "r") as f:
             self.pieces = frozendict(
                 zip(PieceKind._member_map_.values(), batched(f.read().splitlines(), 5))
@@ -99,26 +95,25 @@ class Chessboard(Widget):
     def on_mouse_move(self, event: MouseMove) -> None:
         self.hovered_square = self._square_at(event.x, event.y)
 
-    def on_leave(self, event: Leave) -> None:
+    def on_leave(self) -> None:
         self.hovered_square = None
 
-    def on_click(self, event: Click) -> None:
-        if self.game is None:
-            return
+    async def on_click(self) -> None:
+        await self.run_action("select()")
 
-        square = self._square_at(event.x, event.y)
-        if (
-            piece := get_occupant(self.game, square)
-        ) is not None and self.game.turn == piece.color:
-            self.post_message(self.SquareSelected(square))
-            return
-
-        if square in self.choice_squares:
-            self.post_message(self.ChoiceSelected(square))
-            return
-
-    # def watch_hovered_square(self, square: Square) -> None:
-    #     self.log(square)
+    #         if self.game is None:
+    #             return
+    #
+    #         square = self._square_at(event.x, event.y)
+    #         if (
+    #             piece := get_occupant(self.game, square)
+    #         ) is not None and self.game.turn == piece.color:
+    #             self.post_message(self.SquareSelected(square))
+    #             return
+    #
+    #         if square in self.choice_squares:
+    #             self.post_message(self.ChoiceSelected(square))
+    #             return
 
     def _render_empty_square_line(
         self, square: Square, line_y: int, bgcolor: Style
@@ -173,7 +168,7 @@ class Chessboard(Widget):
     ) -> list[Segment]:
         return (
             [Segment(" " * 11, bgcolor)]
-            if square not in self.highlighted_squares
+            if square not in self.highlighted_squares | {self.hovered_square}
             else [
                 Segment(" ", action_style),
                 Segment(" " * 9, bgcolor),
@@ -183,3 +178,35 @@ class Chessboard(Widget):
 
     def _square_at(self, x: int, y: int) -> Square:
         return (x // 11 + 1, 8 - y // 5)
+
+    def action_move_hover(self, direction: Square) -> None:
+        if (game := self.game) is None:
+            return
+
+        if self.hovered_square is None:
+            self.hovered_square = (1, (1 if game.turn == PieceColor.WHITE else 8))
+            return
+
+        x, y = self.hovered_square
+        dx, dy = direction
+        self.hovered_square = _clamp((x + dx, y + dy))
+
+    def action_select(self) -> None:
+        if (game := self.game) is None:
+            return
+        if (square := self.hovered_square) is None:
+            return
+
+        if (
+            piece := get_occupant(game, square)
+        ) is not None and game.turn == piece.color:
+            self.post_message(self.SquareSelected(square))
+            return
+
+        if square in self.choice_squares:
+            self.post_message(self.ChoiceSelected(square))
+            return
+
+def _clamp(sq: Square) -> Square:
+    x, y = sq
+    return (min(max(x, 1), 8), min(max(y, 1), 8))

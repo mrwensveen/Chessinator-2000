@@ -31,3 +31,20 @@ StartScreen {
 Button {
     width: 1fr;
 }
+
+Chessboard {
+    width: 88;
+    height: 40;
+
+    .chessboard--white-square {
+        background: #A5BAC9;
+    }
+
+    .chessboard--black-square {
+        background: #004578;
+    }
+
+    .chessboard--action-square {
+        background: #808080;
+    }
+}
