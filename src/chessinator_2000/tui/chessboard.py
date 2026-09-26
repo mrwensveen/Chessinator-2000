@@ -4,7 +4,7 @@ from itertools import batched, chain
 
 from rich.segment import Segment
 from rich.style import Style
-from textual.events import Click, Leave, MouseMove
+from textual.events import MouseMove
 from textual.message import Message
 from textual.reactive import reactive
 from textual.strip import Strip
@@ -32,6 +32,8 @@ class Chessboard(Widget):
         ("right", "move_hover((1, 0))"),
         ("up", "move_hover((0, 1))"),
         ("down", "move_hover((0, -1))"),
+        ("space", "select()"),
+        ("enter", "select()"),
     ]
 
     class SquareSelected(Message):
@@ -93,23 +95,25 @@ class Chessboard(Widget):
     def on_mouse_move(self, event: MouseMove) -> None:
         self.hovered_square = self._square_at(event.x, event.y)
 
-    def on_leave(self, event: Leave) -> None:
+    def on_leave(self) -> None:
         self.hovered_square = None
 
-    def on_click(self, event: Click) -> None:
-        if self.game is None:
-            return
+    async def on_click(self) -> None:
+        await self.run_action("select()")
 
-        square = self._square_at(event.x, event.y)
-        if (
-            piece := get_occupant(self.game, square)
-        ) is not None and self.game.turn == piece.color:
-            self.post_message(self.SquareSelected(square))
-            return
-
-        if square in self.choice_squares:
-            self.post_message(self.ChoiceSelected(square))
-            return
+    #         if self.game is None:
+    #             return
+    #
+    #         square = self._square_at(event.x, event.y)
+    #         if (
+    #             piece := get_occupant(self.game, square)
+    #         ) is not None and self.game.turn == piece.color:
+    #             self.post_message(self.SquareSelected(square))
+    #             return
+    #
+    #         if square in self.choice_squares:
+    #             self.post_message(self.ChoiceSelected(square))
+    #             return
 
     def _render_empty_square_line(
         self, square: Square, line_y: int, bgcolor: Style
@@ -164,7 +168,7 @@ class Chessboard(Widget):
     ) -> list[Segment]:
         return (
             [Segment(" " * 11, bgcolor)]
-            if square not in self.highlighted_squares
+            if square not in self.highlighted_squares | {self.hovered_square}
             else [
                 Segment(" ", action_style),
                 Segment(" " * 9, bgcolor),
@@ -187,6 +191,21 @@ class Chessboard(Widget):
         dx, dy = direction
         self.hovered_square = _clamp((x + dx, y + dy))
 
+    def action_select(self) -> None:
+        if (game := self.game) is None:
+            return
+        if (square := self.hovered_square) is None:
+            return
+
+        if (
+            piece := get_occupant(game, square)
+        ) is not None and game.turn == piece.color:
+            self.post_message(self.SquareSelected(square))
+            return
+
+        if square in self.choice_squares:
+            self.post_message(self.ChoiceSelected(square))
+            return
 
 def _clamp(sq: Square) -> Square:
     x, y = sq
