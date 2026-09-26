@@ -13,6 +13,7 @@ from textual.widget import Widget
 from chessinator_2000.gamestate import (
     GameState,
     Piece,
+    PieceColor,
     PieceKind,
     Square,
     get_occupant,
@@ -26,21 +27,12 @@ class Chessboard(Widget):
         "chessboard--action-square",
     }
 
-    DEFAULT_CSS = """
-    Chessboard {
-        width: 88;
-        height: 40;
-    }
-    Chessboard .chessboard--white-square {
-        background: #A5BAC9;
-    }
-    Chessboard .chessboard--black-square {
-        background: #004578;
-    }
-    Chessboard .chessboard--action-square {
-        background: #808080;
-    }
-    """
+    BINDINGS = [  # noqa: RUF012
+        ("left", "move_hover((-1, 0))"),
+        ("right", "move_hover((1, 0))"),
+        ("up", "move_hover((0, 1))"),
+        ("down", "move_hover((0, -1))"),
+    ]
 
     class SquareSelected(Message):
         def __init__(self, square: Square) -> None:
@@ -59,6 +51,8 @@ class Chessboard(Widget):
     highlighted_squares: reactive[frozenset[Square]] = reactive(frozenset())
 
     def __init__(self):
+        self.can_focus = True
+
         with open("pieces.txt", "r") as f:
             self.pieces = frozendict(
                 zip(PieceKind._member_map_.values(), batched(f.read().splitlines(), 5))
@@ -116,9 +110,6 @@ class Chessboard(Widget):
         if square in self.choice_squares:
             self.post_message(self.ChoiceSelected(square))
             return
-
-    # def watch_hovered_square(self, square: Square) -> None:
-    #     self.log(square)
 
     def _render_empty_square_line(
         self, square: Square, line_y: int, bgcolor: Style
@@ -183,3 +174,20 @@ class Chessboard(Widget):
 
     def _square_at(self, x: int, y: int) -> Square:
         return (x // 11 + 1, 8 - y // 5)
+
+    def action_move_hover(self, direction: Square) -> None:
+        if (game := self.game) is None:
+            return
+
+        if self.hovered_square is None:
+            self.hovered_square = (1, (1 if game.turn == PieceColor.WHITE else 8))
+            return
+
+        x, y = self.hovered_square
+        dx, dy = direction
+        self.hovered_square = _clamp((x + dx, y + dy))
+
+
+def _clamp(sq: Square) -> Square:
+    x, y = sq
+    return (min(max(x, 1), 8), min(max(y, 1), 8))
