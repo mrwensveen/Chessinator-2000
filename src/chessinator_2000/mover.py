@@ -1,6 +1,8 @@
 import random
+from collections import namedtuple
 from typing import Protocol
 
+from chessinator_2000.db.game_db import find_game_results
 from chessinator_2000.gamestate import GameState, get_possible_moves
 from chessinator_2000.utils import groupby
 
@@ -47,3 +49,37 @@ class RandomPieceMover:
             return random.choice(list(origins[square]))
         else:
             return None
+
+
+DbGameResult = namedtuple(
+    "DbGameResult", ["game_state", "white_wins", "black_wins", "num_played"]
+)
+
+
+class DatabaseMover:
+    def move(self, game: GameState) -> GameState | None:
+        if (len(game.board)) <= 2:
+            return None
+
+        moves = list(get_possible_moves(game))
+
+        db_results: frozenset[DbGameResult] = frozenset(
+            map(DbGameResult._make, find_game_results(game.turn.flipped(), moves))
+        )
+        found = frozendict() | {
+            move: result
+            for move in moves
+            if (result := next(r for r in db_results if r == str(move)))
+        }
+
+        scored: frozendict[GameState, float] = frozendict() | {
+            move: 0.5
+            if (f := found.get(move, None)) is None
+            else self.score(**f._asdict())
+            for move in moves
+        }
+
+        grouped = groupby(scored.items(), lambda gs: gs[1], lambda gs: gs[0])
+
+    def score(self, *, white_wins: int, black_wins: int, num_played: int, **_) -> float:
+        return 0.5

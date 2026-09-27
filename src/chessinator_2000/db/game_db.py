@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from sqlalchemy import (
     Column,
     Integer,
@@ -6,6 +8,7 @@ from sqlalchemy import (
     Table,
     create_engine,
     insert,
+    select,
     update,
 )
 
@@ -70,4 +73,23 @@ def record_game_result(game: GameState, winner: PieceColor | None) -> None:
                 | insert_winners
                 for state, turn in new_states.items()
             ],
+        )
+
+
+def find_game_results(
+    turn: PieceColor, moves: Iterable[GameState]
+) -> frozenset[tuple[str, int, int, int]]:
+    games = {str(game) for game in moves}
+
+    with engine.connect() as conn:
+        found = conn.execute(
+            select(game_result_table)
+            .filter_by(turn=turn.value)
+            .where(game_result_table.c.game_state.in_(games))
+        )
+        return frozenset(
+            {
+                (game_state, white_wins, black_wins, num_played)
+                for game_state, white_wins, black_wins, num_played in found
+            }
         )
