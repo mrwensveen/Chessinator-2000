@@ -66,20 +66,19 @@ class DatabaseMover:
         db_results: frozenset[DbGameResult] = frozenset(
             map(DbGameResult._make, find_game_results(game.turn.flipped(), moves))
         )
+
         found = frozendict() | {
             move: result
             for move in moves
             if (result := next(r for r in db_results if r == str(move)))
         }
 
-        scored: frozendict[GameState, float] = frozendict() | {
-            move: 0.5
-            if (f := found.get(move, None)) is None
-            else self.score(**f._asdict())
-            for move in moves
-        }
-
-        grouped = groupby(scored.items(), lambda gs: gs[1], lambda gs: gs[0])
+        grouped = groupby(
+            moves,
+            lambda m: (
+                0.5 if (f := found.get(m, None)) is None else self.score(**f._asdict())
+            ),
+        )
 
     def score(self, *, white_wins: int, black_wins: int, num_played: int, **_) -> float:
         return 0.5
