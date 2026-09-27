@@ -3,6 +3,7 @@ from textual.containers import CenterMiddle, HorizontalGroup
 from textual.reactive import reactive
 from textual.widgets import Button, Header
 
+from chessinator_2000.db.game_db import record_game_result
 from chessinator_2000.gamestate import GameState, PieceColor, Square, get_previous_games
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.chessboard import Chessboard
@@ -97,6 +98,18 @@ class Chessinator2000(App):
 
     def on_player_moved(self, event: PlayerMoved) -> None:
         if event.move is None:
+            # Record this game in the database
+
+            if self.allow_db and self.game is not None:
+                winner = (
+                    None
+                    if self.game is None
+                    or self.game.status in ("in_progress", "stalemate")
+                    else self.game.turn.flipped()
+                )
+
+                record_game_result(self.game, winner)
+
             self.push_screen(
                 EndScreen(self.game),
                 lambda _: self.push_screen("start", self._start_game),
