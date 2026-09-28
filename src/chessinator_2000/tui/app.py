@@ -23,6 +23,7 @@ DEFAULT_GAME = Game("""
     turn=WHITE
 """)
 
+
 class Chessinator2000(App):
     TITLE = "Chessinator 2000!"
     SCREENS = {"start": StartScreen}  # noqa: RUF012
@@ -57,7 +58,7 @@ class Chessinator2000(App):
         self.push_screen("start", self._start_game)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id in ("undo", "new"):
+        if event.button.id in ("undo", "new_game"):
             self.chosen_square = None
             self.selected_square = None
             self.choice_squares = frozenset()
@@ -99,7 +100,6 @@ class Chessinator2000(App):
     def on_player_moved(self, event: PlayerMoved) -> None:
         if event.move is None:
             # Record this game in the database
-
             if self.allow_db and self.game is not None:
                 winner = (
                     None
