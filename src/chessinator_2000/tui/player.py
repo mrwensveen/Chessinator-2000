@@ -1,4 +1,5 @@
 from itertools import chain
+from typing import Protocol
 
 from textual.app import App
 from textual.message import Message
@@ -26,7 +27,13 @@ class PlayerChoicesChanged(Message):
         self.squares = squares
 
 
-class Player:
+class Player(Protocol):
+    def handle_update_game(self, game: GameState) -> None: ...
+    def handle_update_selected_square(self, square: Square | None) -> None: ...
+    def handle_update_chosen_square(self, square: Square | None) -> None: ...
+
+
+class UserPlayer:
     game: GameState | None = None
     selected_quare: Square | None = None
     choice_moves: tuple[GameState, ...] = ()
@@ -35,21 +42,13 @@ class Player:
         self.app = app
         self.color = color
 
-        app.watch(app, "game", self.handle_update_game, init=False)
-        app.watch(
-            app, "selected_square", self.handle_update_selected_square, init=False
-        )
-        app.watch(app, "chosen_square", self.handle_update_chosen_square, init=False)
-
-    def handle_update_game(self, game: GameState | None) -> None:
+    def handle_update_game(self, game: GameState) -> None:
         self.game = game
         self.selected_quare = None
 
         # TODO: This is very inefficient, probably
-        if (
-            game is not None
-            and game.turn == self.color
-            and (len(game.board) <= 2 or len(list(get_possible_moves(game))) == 0)
+        if game.turn == self.color and (
+            len(game.board) <= 2 or len(list(get_possible_moves(game))) == 0
         ):
             self.app.post_message(PlayerMoved(None))
 
@@ -99,21 +98,26 @@ class Player:
         self.app.post_message(PlayerMoved(move))
 
 
-class Cpu:
+class CpuPlayer:
     def __init__(self, app: App, color: PieceColor, mover: Mover):
         self.app = app
         self.color = color
         self.mover = mover
 
-        app.watch(app, "game", self.handle_update_game, init=False)
-
-    def handle_update_game(self, game: GameState | None) -> None:
-        if game is None or game.turn != self.color:
+    def handle_update_game(self, game: GameState) -> None:
+        if game.turn != self.color:
             return
 
-        delay = .3 if len(game.board) > 6 else .1
+        delay = 0.3 if len(game.board) > 6 else 0.1
+
         def do_move():
             move = self.mover.move(game) if len(game.board) >= 2 else None
             self.app.post_message(PlayerMoved(move))
 
         self.app.set_timer(delay, do_move)
+
+    def handle_update_selected_square(self, square: Square | None) -> None:
+        pass
+
+    def handle_update_chosen_square(self, square: Square | None) -> None:
+        pass

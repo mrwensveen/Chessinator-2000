@@ -14,13 +14,13 @@ from chessinator_2000.mover import (
     RandomMover,
     RandomPieceMover,
 )
-from chessinator_2000.tui.player import Cpu, Player
+from chessinator_2000.tui.player import CpuPlayer, Player, UserPlayer
 
 
 @dataclass(frozen=True)
 class StartScreenResult:
-    player_white: Callable[[App, PieceColor], object]
-    player_black: Callable[[App, PieceColor], object]
+    player_white: Callable[[App, PieceColor], Player]
+    player_black: Callable[[App, PieceColor], Player]
     allow_db: bool
 
 
@@ -91,18 +91,18 @@ class StartScreen(ModalScreen[StartScreenResult]):
 
     def _create_player_factory(
         self, option: int, color: PieceColor
-    ) -> Callable[[App, PieceColor], object]:
+    ) -> Callable[[App, PieceColor], Player]:
         match option:
             case 1:
-                return lambda app, color: Player(app, color)
+                return lambda app, color: UserPlayer(app, color)
             case 2:
-                return lambda app, color: Cpu(app, color, DatabaseMover(color))
+                return lambda app, color: CpuPlayer(app, color, DatabaseMover(color))
             case 3:
-                return lambda app, color: Cpu(app, color, RandomMover())
+                return lambda app, color: CpuPlayer(app, color, RandomMover())
             case 4:
-                return lambda app, color: Cpu(app, color, RandomPieceMover())
+                return lambda app, color: CpuPlayer(app, color, RandomPieceMover())
             case 5:
-                return lambda app, color: Cpu(app, color, FirstMover())
+                return lambda app, color: CpuPlayer(app, color, FirstMover())
 
         msg = f"Could not create player factory for option {option}"
         raise ValueError(msg)
