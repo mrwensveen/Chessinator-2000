@@ -90,6 +90,6 @@ def find_game_results(
         return frozenset(
             {
                 (game_state, white_wins, black_wins, num_played)
-                for game_state, white_wins, black_wins, num_played in found
+                for game_state, _, white_wins, black_wins, num_played in found
             }
         )

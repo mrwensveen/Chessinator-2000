@@ -3,7 +3,7 @@ from collections import namedtuple
 from typing import Protocol
 
 from chessinator_2000.db.game_db import find_game_results
-from chessinator_2000.gamestate import GameState, get_possible_moves
+from chessinator_2000.gamestate import GameState, PieceColor, get_possible_moves
 from chessinator_2000.utils import groupby
 
 
@@ -57,6 +57,9 @@ DbGameResult = namedtuple(
 
 
 class DatabaseMover:
+    def __init__(self, color: PieceColor) -> None:
+        self.color = color
+
     def move(self, game: GameState) -> GameState | None:
         if (len(game.board)) <= 2:
             return None
@@ -70,15 +73,36 @@ class DatabaseMover:
         found = frozendict() | {
             move: result
             for move in moves
-            if (result := next(r for r in db_results if r == str(move)))
+            if (result := next((r for r in db_results if r == str(move)), None))
+            is not None
         }
 
         grouped = groupby(
             moves,
             lambda m: (
-                0.5 if (f := found.get(m, None)) is None else self.score(**f._asdict())
+                0
+                if (f := found.get(m, None)) is None
+                else self.score(
+                    white_wins=f.white_wins,
+                    black_wins=f.black_wins,
+                    num_played=f.num_played,
+                )
             ),
         )
 
-    def score(self, *, white_wins: int, black_wins: int, num_played: int, **_) -> float:
-        return 0.5
+        first = next(
+            iter(sorted(grouped.items(), key=lambda i: i[0], reverse=True)), None
+        )
+
+        if first is None:
+            return None
+
+        choice = random.choice(list(first[1]))
+        return choice
+
+    def score(self, *, white_wins: int, black_wins: int, num_played: int) -> float:
+        return (
+            (white_wins - black_wins)
+            / min(1, num_played)
+            * (1 if self.color == PieceColor.WHITE else -1)
+        )

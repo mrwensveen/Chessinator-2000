@@ -111,8 +111,9 @@ class Cpu:
         if game is None or game.turn != self.color:
             return
 
+        delay = .3 if len(game.board) > 6 else .1
         def do_move():
             move = self.mover.move(game) if len(game.board) >= 2 else None
             self.app.post_message(PlayerMoved(move))
 
-        self.app.set_timer(1, do_move)
+        self.app.set_timer(delay, do_move)

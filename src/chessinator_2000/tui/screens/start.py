@@ -8,7 +8,12 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Label, Select, Switch
 
 from chessinator_2000.gamestate import PieceColor
-from chessinator_2000.mover import FirstMover, RandomMover, RandomPieceMover
+from chessinator_2000.mover import (
+    DatabaseMover,
+    FirstMover,
+    RandomMover,
+    RandomPieceMover,
+)
 from chessinator_2000.tui.player import Cpu, Player
 
 
@@ -35,9 +40,10 @@ class StartScreen(ModalScreen[StartScreenResult]):
     def compose(self) -> ComposeResult:
         player_options = [
             ("Player", 1),
-            ("CPU Random move", 2),
-            ("CPU Random piece", 3),
-            ("CPU First move", 4),
+            ("CPU C-2000", 2),
+            ("CPU Random move", 3),
+            ("CPU Random piece", 4),
+            ("CPU First move", 5),
         ]
 
         yield Grid(
@@ -74,8 +80,8 @@ class StartScreen(ModalScreen[StartScreenResult]):
         else:
             self.dismiss(
                 StartScreenResult(
-                    self._create_player_factory(self.player_white),
-                    self._create_player_factory(self.player_black),
+                    self._create_player_factory(self.player_white, PieceColor.WHITE),
+                    self._create_player_factory(self.player_black, PieceColor.BLACK),
                     self.allow_db,
                 )
             )
@@ -84,16 +90,18 @@ class StartScreen(ModalScreen[StartScreenResult]):
         self.allow_db = event.value
 
     def _create_player_factory(
-        self, option: int
+        self, option: int, color: PieceColor
     ) -> Callable[[App, PieceColor], object]:
         match option:
             case 1:
                 return lambda app, color: Player(app, color)
             case 2:
-                return lambda app, color: Cpu(app, color, RandomMover())
+                return lambda app, color: Cpu(app, color, DatabaseMover(color))
             case 3:
-                return lambda app, color: Cpu(app, color, RandomPieceMover())
+                return lambda app, color: Cpu(app, color, RandomMover())
             case 4:
+                return lambda app, color: Cpu(app, color, RandomPieceMover())
+            case 5:
                 return lambda app, color: Cpu(app, color, FirstMover())
 
         msg = f"Could not create player factory for option {option}"
