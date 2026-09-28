@@ -283,7 +283,7 @@ def knight_moves(game: GameState, position: Square) -> list[GameState]:
         (x - 1, y - 2) if x >= 2 and y >= 3 else None,
         (x - 2, y - 1) if x >= 3 and y >= 2 else None,
         (x - 2, y + 1) if x >= 3 and y <= 7 else None,
-        (x - 1, y + 2) if x >= 1 and y <= 6 else None,
+        (x - 1, y + 2) if x >= 2 and y <= 6 else None,
     ]
 
     possible = [
