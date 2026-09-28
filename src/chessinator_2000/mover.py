@@ -73,14 +73,18 @@ class DatabaseMover:
         found = frozendict() | {
             move: result
             for move in moves
-            if (result := next((r for r in db_results if r == str(move)), None))
+            if (
+                result := next(
+                    (r for r in db_results if r.game_state == str(move)), None
+                )
+            )
             is not None
         }
 
         grouped = groupby(
             moves,
             lambda m: (
-                0
+                0.0
                 if (f := found.get(m, None)) is None
                 else self.score(
                     white_wins=f.white_wins,
@@ -101,8 +105,4 @@ class DatabaseMover:
         return choice
 
     def score(self, *, white_wins: int, black_wins: int, num_played: int) -> float:
-        return (
-            (white_wins - black_wins)
-            / min(1, num_played)
-            * (1 if self.color == PieceColor.WHITE else -1)
-        )
+        return (white_wins - black_wins) / min(1, num_played) * self.color.value
