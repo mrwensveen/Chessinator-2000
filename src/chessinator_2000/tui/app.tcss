@@ -42,6 +42,12 @@ Button {
     width: 1fr;
 }
 
+Captures {
+    dock: left;
+    width: 20;
+    border: solid cyan;
+}
+
 Chessboard {
     width: 88;
     height: 40;

@@ -1,11 +1,11 @@
 from textual.app import App, ComposeResult
-from textual.containers import CenterMiddle, HorizontalGroup
+from textual.containers import CenterMiddle, Horizontal, HorizontalGroup
 from textual.reactive import reactive
 from textual.widgets import Button, Header
 
 from chessinator_2000.db.game_db import record_game_result
 from chessinator_2000.gamestate import GameState, PieceColor, Square, get_previous_games
-from chessinator_2000.parser import Game
+from chessinator_2000.tui.captures import Captures
 from chessinator_2000.tui.chessboard import Chessboard
 from chessinator_2000.tui.player import (
     Player,
@@ -15,18 +15,6 @@ from chessinator_2000.tui.player import (
 )
 from chessinator_2000.tui.screens.end import EndScreen
 from chessinator_2000.tui.screens.start import StartScreen, StartScreenResult
-
-DEFAULT_GAME = Game("""
-    |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
-    |p̃|p̃|p̃|p̃|p̃|p̃|p̃|p̃|
-    | | | | | | | | |
-    | | | | | | | | |
-    | | | | | | | | |
-    | | | | | | | | |
-    |P̃|P̃|P̃|P̃|P̃|P̃|P̃|P̃|
-    |R̃|Ñ|B̃|Q̃|K̃|B̃|Ñ|R̃|
-    turn=WHITE
-""")
 
 
 class Chessinator2000(App):
@@ -44,17 +32,23 @@ class Chessinator2000(App):
 
     def __init__(self, game: GameState) -> None:
         super().__init__()
+
+        self.start_game = game
         self.set_reactive(Chessinator2000.game, game)
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with CenterMiddle():
-            yield (
-                Chessboard()
-                .data_bind(Chessinator2000.game)
-                .data_bind(Chessinator2000.selected_square)
-                .data_bind(Chessinator2000.choice_squares)
+        with Horizontal():
+            yield Captures(self.start_game, PieceColor.WHITE).data_bind(
+                Chessinator2000.game
             )
+            with CenterMiddle():
+                yield (
+                    Chessboard()
+                    .data_bind(Chessinator2000.game)
+                    .data_bind(Chessinator2000.selected_square)
+                    .data_bind(Chessinator2000.choice_squares)
+                )
         with HorizontalGroup():
             yield Button("↶ Undo", id="undo", disabled=True)
             yield Button("Restart game", id="new_game")
@@ -188,5 +182,5 @@ class Chessinator2000(App):
 
         self._reset_squares()
 
-        self.game = DEFAULT_GAME
+        self.game = self.start_game
         self.mutate_reactive(Chessinator2000.game)
