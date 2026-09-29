@@ -101,20 +101,6 @@ class Chessboard(Widget):
     async def on_click(self) -> None:
         await self.run_action("select()")
 
-    #         if self.game is None:
-    #             return
-    #
-    #         square = self._square_at(event.x, event.y)
-    #         if (
-    #             piece := get_occupant(self.game, square)
-    #         ) is not None and self.game.turn == piece.color:
-    #             self.post_message(self.SquareSelected(square))
-    #             return
-    #
-    #         if square in self.choice_squares:
-    #             self.post_message(self.ChoiceSelected(square))
-    #             return
-
     def _render_empty_square_line(
         self, square: Square, line_y: int, bgcolor: Style
     ) -> list[Segment]:
@@ -206,6 +192,7 @@ class Chessboard(Widget):
         if square in self.choice_squares:
             self.post_message(self.ChoiceSelected(square))
             return
+
 
 def _clamp(sq: Square) -> Square:
     x, y = sq

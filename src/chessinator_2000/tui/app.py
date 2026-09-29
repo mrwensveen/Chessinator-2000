@@ -1,16 +1,20 @@
-from collections.abc import Callable
-
 from textual.app import App, ComposeResult
 from textual.containers import CenterMiddle, HorizontalGroup
 from textual.reactive import reactive
 from textual.widgets import Button, Header
 
+from chessinator_2000.db.game_db import record_game_result
 from chessinator_2000.gamestate import GameState, PieceColor, Square, get_previous_games
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.chessboard import Chessboard
-from chessinator_2000.tui.player import Player, PlayerChoicesChanged, PlayerMoved
+from chessinator_2000.tui.player import (
+    Player,
+    PlayerChoicesChanged,
+    PlayerMoved,
+    UserPlayer,
+)
 from chessinator_2000.tui.screens.end import EndScreen
-from chessinator_2000.tui.screens.start import StartScreen
+from chessinator_2000.tui.screens.start import StartScreen, StartScreenResult
 
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
@@ -24,6 +28,7 @@ DEFAULT_GAME = Game("""
     turn=WHITE
 """)
 
+
 class Chessinator2000(App):
     TITLE = "Chessinator 2000!"
     SCREENS = {"start": StartScreen}  # noqa: RUF012
@@ -34,7 +39,8 @@ class Chessinator2000(App):
     choice_squares: reactive[frozenset[Square]] = reactive(frozenset())
     chosen_square: reactive[Square | None] = reactive(None)
 
-    players: frozendict[PieceColor, object] = frozendict()
+    players: frozendict[PieceColor, Player] = frozendict()
+    allow_db: bool = False
 
     def __init__(self, game: GameState) -> None:
         super().__init__()
@@ -53,15 +59,35 @@ class Chessinator2000(App):
             yield Button("↶ Undo", id="undo", disabled=True)
             yield Button("Restart game", id="new_game")
 
+    def watch_game(self, game: GameState | None) -> None:
+        self.query_one("#undo").disabled = game is None or game.previous is None
+
+        if (
+            game is not None
+            and (player := self.players.get(game.turn, None)) is not None
+        ):
+            player.handle_update_game(game)
+
+    def watch_selected_square(self, square: Square | None) -> None:
+        if (
+            self.game is not None
+            and (player := self.players.get(self.game.turn, None)) is not None
+        ):
+            player.handle_update_selected_square(square)
+
+    def watch_chosen_square(self, square: Square | None) -> None:
+        if (
+            self.game is not None
+            and (player := self.players.get(self.game.turn, None)) is not None
+        ):
+            player.handle_update_chosen_square(square)
+
     def on_mount(self) -> None:
         self.push_screen("start", self._start_game)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id in ("undo", "new"):
-            self.chosen_square = None
-            self.selected_square = None
-            self.choice_squares = frozenset()
-            self.query_one(Chessboard).highlighted_squares = frozenset()
+        if event.button.id in ("undo", "new_game"):
+            self._reset_squares()
 
         if (
             event.button.id == "undo"
@@ -72,15 +98,14 @@ class Chessinator2000(App):
                 (
                     p
                     for p in get_previous_games(self.game)
-                    if isinstance(self.players[p.turn], Player)
+                    if isinstance(self.players[p.turn], UserPlayer)
                 ),
                 None,
             )
             if previous_player_game is not None:
                 self.game = previous_player_game
         elif event.button.id == "new_game":
-            self.game = DEFAULT_GAME
-            self.query_one("#undo").disabled = True
+            self.players = frozendict()
             self.push_screen("start", self._start_game)
 
     def on_chessboard_square_selected(self, event: Chessboard.SquareSelected) -> None:
@@ -98,22 +123,26 @@ class Chessinator2000(App):
 
     def on_player_moved(self, event: PlayerMoved) -> None:
         if event.move is None:
+            # Record this game in the database
+            if self.allow_db and self.game is not None:
+                winner = (
+                    None
+                    if self.game is None
+                    or self.game.status in ("in_progress", "stalemate")
+                    else self.game.turn.flipped()
+                )
+
+                record_game_result(self.game, winner)
+
             self.push_screen(
                 EndScreen(self.game),
                 lambda _: self.push_screen("start", self._start_game),
             )
             return
 
+        self._reset_squares()
         self._highlight_move(event)
         self.game = event.move
-
-        self.chosen_square = None
-        self.selected_square = None
-        self.choice_squares = frozenset()
-
-        self.query_one("#undo").disabled = (
-            event.move is None or event.move.previous is None
-        )
 
     def on_player_choices_changed(self, event: PlayerChoicesChanged) -> None:
         self.choice_squares = event.squares
@@ -137,20 +166,27 @@ class Chessinator2000(App):
                 sq for sq in (src, dst) if sq is not None
             )
 
+    def _reset_squares(self) -> None:
+        self.chosen_square = None
+        self.selected_square = None
+        self.choice_squares = frozenset()
+        self.query_one(Chessboard).highlighted_squares = frozenset()
+
     def _start_game(
         self,
-        players: tuple[
-            Callable[[App, PieceColor], object], Callable[[App, PieceColor], object]
-        ]
-        | None,
+        start: StartScreenResult | None,
     ) -> None:
-        if players is None:
+        if start is None:
             self.push_screen("start", self._start_game)
             return
 
         self.players = frozendict() | {
-            PieceColor.WHITE: players[0](self, PieceColor.WHITE),
-            PieceColor.BLACK: players[1](self, PieceColor.BLACK),
+            PieceColor.WHITE: start.player_white(self, PieceColor.WHITE),
+            PieceColor.BLACK: start.player_black(self, PieceColor.BLACK),
         }
+        self.allow_db = start.allow_db
 
+        self._reset_squares()
+
+        self.game = DEFAULT_GAME
         self.mutate_reactive(Chessinator2000.game)
