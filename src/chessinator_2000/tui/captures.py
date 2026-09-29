@@ -1,10 +1,9 @@
 from collections import Counter
 
 from textual.app import ComposeResult
-from textual.coordinate import Coordinate
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import DataTable
+from textual.widgets import Static
 
 from chessinator_2000.gamestate import GameState, PieceColor, PieceKind
 
@@ -22,9 +21,6 @@ class Captures(Widget):
 
     def on_mount(self) -> None:
         self.border_title = "Captures"
-        table = self.query_one(DataTable)
-        table.add_column("Piece", width=8)
-        table.add_rows(("") for _ in PieceKind)
 
     def compute_captures(self) -> frozendict[PieceKind, int]:
         if self.game is None:
@@ -37,9 +33,15 @@ class Captures(Widget):
         return frozendict() | captured
 
     def watch_captures(self, captures: frozendict[PieceKind, int]) -> None:
-        table = self.query_one(DataTable)
-        for k, f in captures.items():
-            table.update_cell_at(Coordinate(k.value - 1, 0), str(f))
+        static = self.query_one(Static)
+
+        static.update(
+            "\n".join(
+                (chr(0x265A - k.value) * f)
+                for k in PieceKind
+                if (f := captures.get(k, 0)) > 0
+            )
+        )
 
     def compose(self) -> ComposeResult:
-        yield DataTable()
+        yield Static()
