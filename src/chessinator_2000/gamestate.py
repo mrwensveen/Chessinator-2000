@@ -1,5 +1,5 @@
 from collections.abc import Generator, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain
 from typing import Literal
@@ -48,7 +48,9 @@ class GameState:
     board: frozendict[Square, Piece]
     turn: PieceColor
     en_passant: tuple[Square, Square] | None = None
-    previous: GameState | None = None
+    previous: GameState | None = field(
+        default=None, compare=False, hash=False, repr=False
+    )
 
     @property
     def status(self) -> Literal["in_progress", "stalemate", "checkmate"]:
