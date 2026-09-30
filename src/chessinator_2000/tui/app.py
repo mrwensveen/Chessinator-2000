@@ -1,5 +1,10 @@
 from textual.app import App, ComposeResult
-from textual.containers import CenterMiddle, Horizontal, HorizontalGroup
+from textual.containers import (
+    CenterMiddle,
+    Container,
+    Horizontal,
+    HorizontalGroup,
+)
 from textual.reactive import reactive
 from textual.widgets import Button, Header
 
@@ -39,9 +44,13 @@ class Chessinator2000(App):
     def compose(self) -> ComposeResult:
         yield Header()
         with Horizontal():
-            yield Captures(self.start_game, PieceColor.WHITE).data_bind(
-                Chessinator2000.game
-            )
+            with Container(id="captures"):
+                yield Captures(self.start_game, PieceColor.WHITE).data_bind(
+                    Chessinator2000.game
+                )
+                yield Captures(self.start_game, PieceColor.BLACK).data_bind(
+                    Chessinator2000.game
+                )
             with CenterMiddle():
                 yield (
                     Chessboard()
