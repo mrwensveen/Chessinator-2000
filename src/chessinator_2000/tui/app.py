@@ -208,5 +208,5 @@ class Chessinator2000(App):
         self._reset_squares()
         self.query_one(RichLog).clear()
 
-        self.game = self.start_game
+        self.set_reactive(Chessinator2000.game, self.start_game)
         self.mutate_reactive(Chessinator2000.game)
