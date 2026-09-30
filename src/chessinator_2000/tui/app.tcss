@@ -44,7 +44,7 @@ Button {
 
 #captures {
     dock: left;
-    width: 16;
+    width: 30;
     border: solid gray;
     padding: 0 1;
 }
@@ -96,4 +96,12 @@ Chessboard {
     .chessboard--action-square {
         background: #808080;
     }
+}
+
+RichLog {
+    dock: right;
+    width: 30;
+
+    border: solid gray;
+    padding: 0 1;
 }
