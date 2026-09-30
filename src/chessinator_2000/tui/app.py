@@ -67,7 +67,11 @@ class Chessinator2000(App):
             yield Button("Restart game", id="new_game")
 
     def watch_game(self, game: GameState | None) -> None:
-        self.query_one("#undo").disabled = game is None or game.previous is None
+        self.query_one("#undo").disabled = (
+            game is None
+            or game.previous is None
+            or all(isinstance(p, CpuPlayer) for p in self.players.values())
+        )
 
         if (
             game is not None

@@ -111,8 +111,19 @@ class CpuPlayer:
             return
 
         def do_move():
-            move = self.mover.move(game) if len(game.board) >= 2 else None
-            self.app.post_message(PlayerMoved(move, type(self.mover).__name__))
+            result = self.mover.move(game) if len(game.board) >= 2 else None
+
+            move, msg = (
+                (None, None)
+                if result is None
+                else (result[0], None)
+                if result[1] == 0.0
+                else (
+                    result[0],
+                    f"{self.color.name[0]}|{type(self.mover).__name__}: {result[1]}",
+                )
+            )
+            self.app.post_message(PlayerMoved(move, msg))
 
         self.app.set_timer(self.delay, do_move)
 

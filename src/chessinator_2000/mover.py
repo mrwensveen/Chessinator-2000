@@ -8,11 +8,11 @@ from chessinator_2000.utils import groupby
 
 
 class Mover(Protocol):
-    def move(self, game: GameState) -> GameState | None: ...
+    def move(self, game: GameState) -> tuple[GameState, float] | None: ...
 
 
 class RandomMover:
-    def move(self, game: GameState) -> GameState | None:
+    def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
 
@@ -21,20 +21,22 @@ class RandomMover:
         if len(moves) > 0:
             # Pick a random move
             move = random.choice(moves)
-            return move
+            return (move, 0.0)
         else:
             return None
 
 
 class FirstMover:
-    def move(self, game: GameState) -> GameState | None:
+    def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
-        return next(iter(get_possible_moves(game)), None)
+
+        move = next(iter(get_possible_moves(game)), None)
+        return move if move is None else (move, 0.0)
 
 
 class RandomPieceMover:
-    def move(self, game: GameState) -> GameState | None:
+    def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
 
@@ -46,7 +48,7 @@ class RandomPieceMover:
                 moves, lambda move: next(iter(game.board.keys() - move.board.keys()))
             )
             square = random.choice(list(origins.keys()))
-            return random.choice(list(origins[square]))
+            return (random.choice(list(origins[square])), 0.0)
         else:
             return None
 
@@ -60,7 +62,7 @@ class DatabaseMover:
     def __init__(self, color: PieceColor) -> None:
         self.color = color
 
-    def move(self, game: GameState) -> GameState | None:
+    def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
 
@@ -102,7 +104,12 @@ class DatabaseMover:
             return None
 
         choice = random.choice(list(first[1]))
-        return choice
+        return (choice, first[0])
 
     def score(self, *, white_wins: int, black_wins: int, num_played: int) -> float:
-        return (white_wins - black_wins) / min(1, num_played) * self.color.value
+        score = (
+            float(white_wins - black_wins)
+            / max(1.0, float(num_played))
+            * float(self.color.value)
+        )
+        return score
