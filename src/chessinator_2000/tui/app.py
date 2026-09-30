@@ -1,13 +1,21 @@
+from typing import cast
+
 from textual.app import App, ComposeResult
-from textual.containers import CenterMiddle, HorizontalGroup
+from textual.containers import (
+    CenterMiddle,
+    Container,
+    Horizontal,
+    HorizontalGroup,
+)
 from textual.reactive import reactive
-from textual.widgets import Button, Header
+from textual.widgets import Button, Header, RichLog
 
 from chessinator_2000.db.game_db import record_game_result
 from chessinator_2000.gamestate import GameState, PieceColor, Square, get_previous_games
-from chessinator_2000.parser import Game
+from chessinator_2000.tui.captures import Captures
 from chessinator_2000.tui.chessboard import Chessboard
 from chessinator_2000.tui.player import (
+    CpuPlayer,
     Player,
     PlayerChoicesChanged,
     PlayerMoved,
@@ -15,18 +23,6 @@ from chessinator_2000.tui.player import (
 )
 from chessinator_2000.tui.screens.end import EndScreen
 from chessinator_2000.tui.screens.start import StartScreen, StartScreenResult
-
-DEFAULT_GAME = Game("""
-    |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
-    |p̃|p̃|p̃|p̃|p̃|p̃|p̃|p̃|
-    | | | | | | | | |
-    | | | | | | | | |
-    | | | | | | | | |
-    | | | | | | | | |
-    |P̃|P̃|P̃|P̃|P̃|P̃|P̃|P̃|
-    |R̃|Ñ|B̃|Q̃|K̃|B̃|Ñ|R̃|
-    turn=WHITE
-""")
 
 
 class Chessinator2000(App):
@@ -44,23 +40,38 @@ class Chessinator2000(App):
 
     def __init__(self, game: GameState) -> None:
         super().__init__()
+
+        self.start_game = game
         self.set_reactive(Chessinator2000.game, game)
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with CenterMiddle():
-            yield (
-                Chessboard()
-                .data_bind(Chessinator2000.game)
-                .data_bind(Chessinator2000.selected_square)
-                .data_bind(Chessinator2000.choice_squares)
-            )
+        with Horizontal():
+            with Container(id="captures"):
+                yield Captures(self.start_game, PieceColor.WHITE).data_bind(
+                    Chessinator2000.game
+                )
+                yield Captures(self.start_game, PieceColor.BLACK).data_bind(
+                    Chessinator2000.game
+                )
+            with CenterMiddle():
+                yield (
+                    Chessboard()
+                    .data_bind(Chessinator2000.game)
+                    .data_bind(Chessinator2000.selected_square)
+                    .data_bind(Chessinator2000.choice_squares)
+                )
+            yield RichLog(wrap=True)
         with HorizontalGroup():
             yield Button("↶ Undo", id="undo", disabled=True)
             yield Button("Restart game", id="new_game")
 
     def watch_game(self, game: GameState | None) -> None:
-        self.query_one("#undo").disabled = game is None or game.previous is None
+        self.query_one("#undo").disabled = (
+            game is None
+            or game.previous is None
+            or all(isinstance(p, CpuPlayer) for p in self.players.values())
+        )
 
         if (
             game is not None
@@ -122,6 +133,10 @@ class Chessinator2000(App):
         self.chosen_square = event.square
 
     def on_player_moved(self, event: PlayerMoved) -> None:
+        # TODO: Algebraic notation / PGN
+        if event.message is not None:
+            self.query_one(RichLog).write(event.message)
+
         if event.move is None:
             # Record this game in the database
             if self.allow_db and self.game is not None:
@@ -184,9 +199,14 @@ class Chessinator2000(App):
             PieceColor.WHITE: start.player_white(self, PieceColor.WHITE),
             PieceColor.BLACK: start.player_black(self, PieceColor.BLACK),
         }
+        if all(isinstance(p, CpuPlayer) for p in self.players.values()):
+            for p in self.players.values():
+                cast(CpuPlayer, p).delay = 0.1
+
         self.allow_db = start.allow_db
 
         self._reset_squares()
+        self.query_one(RichLog).clear()
 
-        self.game = DEFAULT_GAME
+        self.set_reactive(Chessinator2000.game, self.start_game)
         self.mutate_reactive(Chessinator2000.game)

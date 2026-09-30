@@ -16,9 +16,10 @@ from chessinator_2000.mover import Mover
 
 
 class PlayerMoved(Message):
-    def __init__(self, move: GameState | None) -> None:
+    def __init__(self, move: GameState | None, message: object | None = None) -> None:
         super().__init__()
         self.move = move
+        self.message = message
 
 
 class PlayerChoicesChanged(Message):
@@ -103,18 +104,28 @@ class CpuPlayer:
         self.app = app
         self.color = color
         self.mover = mover
+        self.delay = 1.0
 
     def handle_update_game(self, game: GameState) -> None:
         if game.turn != self.color:
             return
 
-        delay = 0.3 if len(game.board) > 6 else 0.1
-
         def do_move():
-            move = self.mover.move(game) if len(game.board) >= 2 else None
-            self.app.post_message(PlayerMoved(move))
+            result = self.mover.move(game) if len(game.board) >= 2 else None
 
-        self.app.set_timer(delay, do_move)
+            move, msg = (
+                (None, None)
+                if result is None
+                else (result[0], None)
+                if result[1] == 0.0
+                else (
+                    result[0],
+                    f"{self.color.name[0]}|{type(self.mover).__name__}: {result[1]}",
+                )
+            )
+            self.app.post_message(PlayerMoved(move, msg))
+
+        self.app.set_timer(self.delay, do_move)
 
     def handle_update_selected_square(self, square: Square | None) -> None:
         pass

@@ -42,6 +42,45 @@ Button {
     width: 1fr;
 }
 
+#captures {
+    dock: left;
+    width: 30;
+    border: solid gray;
+    padding: 0 1;
+}
+
+Captures {
+    height: auto;
+    layout: grid;
+    grid-size: 2 5;
+    grid-rows: 3;
+    grid-gutter: 1;
+
+    &.white {
+        dock: top;
+    }
+    &.black {
+        dock: bottom;
+    }
+}
+
+Piece {
+    width: 5;
+    height: 3;
+    &.white {
+        color: black;
+        background: white;
+    }
+    &.black {
+        color: white;
+        background: black;
+    }
+}
+
+Digits {
+    text-align: right;
+}
+
 Chessboard {
     width: 88;
     height: 40;
@@ -57,4 +96,12 @@ Chessboard {
     .chessboard--action-square {
         background: #808080;
     }
+}
+
+RichLog {
+    dock: right;
+    width: 30;
+
+    border: solid gray;
+    padding: 0 1;
 }
