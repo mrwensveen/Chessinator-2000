@@ -1,5 +1,10 @@
+import sys
+from collections.abc import Generator
+
+from chessinator_2000.db.game_db import record_game_result
+from chessinator_2000.gamestate import PieceColor
+from chessinator_2000.mover import DatabaseMover, RandomPieceMover
 from chessinator_2000.parser import Game
-from chessinator_2000.tui.app import Chessinator2000
 
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
@@ -17,124 +22,40 @@ DEFAULT_GAME = Game("""
 def main() -> None:
     print("Hello from chessinator-2000!\n")
 
-    # board = frozendict() | {
-    #     (1, 2): Piece(PieceColor.WHITE, PieceKind.PAWN),
-    #     (2, 2): Piece(PieceColor.WHITE, PieceKind.PAWN),
-    #     (2, 4): Piece(PieceColor.BLACK, PieceKind.PAWN),
-    # }
-
-    # board = frozendict() | {
-    #     (1, 3): Piece(PieceColor.WHITE, PieceKind.PAWN, moved=True),
-    #     (2, 1): Piece(PieceColor.WHITE, PieceKind.KNIGHT),
-    # }
-
-    # board = frozendict() | {
-    #     (1, 7): Piece(PieceColor.WHITE, PieceKind.PAWN, moved=True),
-    #     (2, 8): Piece(PieceColor.BLACK, PieceKind.KNIGHT, moved=True),
-    # }
-
-    # board = frozendict() | {
-    #     (1, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
-    #     (5, 1): Piece(PieceColor.WHITE, PieceKind.KING),
-    #     (8, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
-    # }
-
-    # board = frozendict() | {
-    #     (4, 2): Piece(PieceColor.BLACK, PieceKind.PAWN),
-    #     (4, 1): Piece(PieceColor.WHITE, PieceKind.QUEEN),
-    # }
-
-    # board = frozendict() | {
-    #     (4, 2): Piece(PieceColor.BLACK, PieceKind.PAWN),
-    #     (4, 3): Piece(PieceColor.BLACK, PieceKind.PAWN),
-    #     (4, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
-    #     (6, 1): Piece(PieceColor.WHITE, PieceKind.BISHOP),
-    # }
-
-    # game = GameState(board, PieceColor.WHITE)
-    # print(game)
-
-    # moves = get_possible_moves(game)
-    # for move in moves:
-    #     print(move)
-
-    # board = frozendict() | {
-    #     (4, 3): Piece(PieceColor.BLACK, PieceKind.PAWN),
-    #     (4, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
-    #     (6, 1): Piece(PieceColor.WHITE, PieceKind.BISHOP),
-    # }
-
-    # game = GameState(board, PieceColor.WHITE)
-    # print(game)
-    # print(get_attackers(game, (4, 3)))
-
-    # board = frozendict() | {
-    #     (5, 1): Piece(PieceColor.WHITE, PieceKind.KING),
-    #     (8, 1): Piece(PieceColor.BLACK, PieceKind.ROOK),
-    # }
-
-    # board = frozendict() | {
-    #     (5, 1): Piece(PieceColor.WHITE, PieceKind.KING),
-    #     (8, 1): Piece(PieceColor.WHITE, PieceKind.ROOK),
-    #     (5, 4): Piece(PieceColor.BLACK, PieceKind.QUEEN),
-    # }
-
-    # board = frozendict() | {
-    #     P("f5"): Piece(PieceColor.WHITE, PieceKind.KING),
-    #     P("h1"): Piece(PieceColor.WHITE, PieceKind.ROOK),
-    #     P("h5"): Piece(PieceColor.BLACK, PieceKind.KING),
-    # }
-
-    # board = frozendict() | {
-    #     Sq("a1"): Pc("K", moved=False),
-    #     Sq("g6"): Pc("Q", moved=True),
-    #     Sq("h8"): Pc("k", moved=False),
-    # }
-
-    # game = GameState(board, PieceColor.BLACK)
-
-    # game = Game("""
-    #     | | | | |k̃| | |r̃|
-    #     | | | | | | | | |
-    #     | | | | | | | | |
-    #     | | | | | | | | |
-    #     | | | | | | | | |
-    #     | | | | | | | | |
-    #     | | | | | | | | |
-    #     | | | | |K̃|B̃| |R̃|
-    #     turn=WHITE
-    # """)
-    # print(game)
-
-    # moves = get_possible_moves(game)
-    # for move in moveexit()s:
-    #     print(move)
-
-    # print(game.status)
-
-    # for _ in range(0):
-    #     if len(game.board) == 2:
-    #         break
-
-    #     # try:
-    #     #     moves = list(get_possible_moves(game))
-    #     # except RecursionError as ex:
-    #     #     print("ERROR", file=sys.stderr)
-    #     #     print(game)
-    #     #     return
-
-    #     moves = list(get_possible_moves(game))
-
-    #     if len(moves) > 0:
-    #         # Pick a random move
-    #         game = random.choice(moves)
-    #         print(game)
-    #     else:
-    #         break
-
-    # print(game.status)
-
     game = DEFAULT_GAME
+    print(game)
 
-    app = Chessinator2000(game)
-    app.run()
+    # app = Chessinator2000(game)
+    # app.run()
+
+    movers = frozendict() | {
+        PieceColor.WHITE: DatabaseMover(PieceColor.WHITE),
+        PieceColor.BLACK: RandomPieceMover(),
+    }
+
+    for turn in turns():
+        move, score = m if (m := movers[turn].move(game)) is not None else (None, 0.0)
+
+        if move is None:
+            print(game.status)
+            break
+
+        if score > 0.0:
+            print(score, file=sys.stderr)
+
+        print(move)
+        game = move
+
+    # Record game result
+    winner = (
+        None if game.status in ("in_progress", "stalemate") else game.turn.flipped()
+    )
+    if winner is not None:
+        print(f"Winner: {winner.name}")
+    record_game_result(game, winner)
+
+
+def turns(max: int = 1600) -> Generator[PieceColor]:
+    for _ in range(int(max / 2)):
+        yield PieceColor.WHITE
+        yield PieceColor.BLACK
