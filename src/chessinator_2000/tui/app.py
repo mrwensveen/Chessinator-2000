@@ -142,8 +142,7 @@ class Chessinator2000(App):
             if self.allow_db and self.game is not None:
                 winner = (
                     None
-                    if self.game is None
-                    or self.game.status in ("in_progress", "stalemate")
+                    if self.game.status in ("in_progress", "stalemate")
                     else self.game.turn.flipped()
                 )
 

@@ -439,6 +439,6 @@ def _get_castle_rook(
 
 
 def get_previous_games(game: GameState) -> Generator[GameState]:
-    if game.previous is not None:
+    while game.previous is not None:
         yield game.previous
-        yield from get_previous_games(game.previous)
+        game = game.previous
