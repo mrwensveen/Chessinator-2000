@@ -103,8 +103,18 @@ class DatabaseMover:
         if first is None:
             return None
 
-        choice = random.choice(list(first[1]))
-        return (choice, first[0])
+        best_moves = list(first[1])
+        score = first[0]
+
+        # choice = random.choice(best_moves)
+
+        origins = groupby(
+            best_moves, lambda move: next(iter(game.board.keys() - move.board.keys()))
+        )
+        square = random.choice(list(origins.keys()))
+        choice = random.choice(list(origins[square]))
+
+        return (choice, score)
 
     def score(self, *, white_wins: int, black_wins: int, num_played: int) -> float:
         score = (

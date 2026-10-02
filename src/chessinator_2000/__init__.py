@@ -47,6 +47,7 @@ def run(game: GameState) -> None:
         PieceColor.BLACK: RandomPieceMover(),
     }
 
+    n = 1
     for turn in turns():
         move, score = m if (m := movers[turn].move(game)) is not None else (None, 0.0)
 
@@ -55,10 +56,11 @@ def run(game: GameState) -> None:
             break
 
         if score != 0.0:
-            print(score, file=sys.stderr)
+            print(f"{n:0>4}\t{score}", file=sys.stderr)
 
         print(move)
         game = move
+        n += 1
 
     # Record game result
     winner = (
