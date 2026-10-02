@@ -40,7 +40,7 @@ def main() -> None:
             print(game.status)
             break
 
-        if score > 0.0:
+        if score != 0.0:
             print(score, file=sys.stderr)
 
         print(move)
