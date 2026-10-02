@@ -1,10 +1,12 @@
+import argparse
 import sys
 from collections.abc import Generator
 
 from chessinator_2000.db.game_db import record_game_result
-from chessinator_2000.gamestate import PieceColor
+from chessinator_2000.gamestate import GameState, PieceColor
 from chessinator_2000.mover import DatabaseMover, RandomPieceMover
 from chessinator_2000.parser import Game
+from chessinator_2000.tui.app import Chessinator2000
 
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
@@ -20,13 +22,25 @@ DEFAULT_GAME = Game("""
 
 
 def main() -> None:
-    print("Hello from chessinator-2000!\n")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--no-tui",
+        action="store_true",
+        help="Run without TUI. This starts a game between DatabaseMover and RandomPieceMover.",
+    )
+    args = parser.parse_args()
 
     game = DEFAULT_GAME
-    print(game)
 
-    # app = Chessinator2000(game)
-    # app.run()
+    if args.no_tui:
+        run(game)
+    else:
+        app = Chessinator2000(game)
+        app.run()
+
+
+def run(game: GameState) -> None:
+    print(game)
 
     movers = frozendict() | {
         PieceColor.WHITE: DatabaseMover(PieceColor.WHITE),
