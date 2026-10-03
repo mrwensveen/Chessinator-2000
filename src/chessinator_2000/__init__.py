@@ -52,7 +52,7 @@ def run(game: GameState) -> None:
         move, score = m if (m := movers[turn].move(game)) is not None else (None, 0.0)
 
         if move is None:
-            print(game.status)
+            print(f"{n:0>4}\t{game.status}")
             break
 
         if score != 0.0:
