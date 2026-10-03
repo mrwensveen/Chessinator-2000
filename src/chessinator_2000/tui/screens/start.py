@@ -98,11 +98,11 @@ class StartScreen(ModalScreen[StartScreenResult]):
             case 2:
                 return lambda app, color: CpuPlayer(app, color, DatabaseMover(color))
             case 3:
-                return lambda app, color: CpuPlayer(app, color, RandomMover())
+                return lambda app, color: CpuPlayer(app, color, RandomMover(color))
             case 4:
-                return lambda app, color: CpuPlayer(app, color, RandomPieceMover())
+                return lambda app, color: CpuPlayer(app, color, RandomPieceMover(color))
             case 5:
-                return lambda app, color: CpuPlayer(app, color, FirstMover())
+                return lambda app, color: CpuPlayer(app, color, FirstMover(color))
 
         msg = f"Could not create player factory for option {option}"
         raise ValueError(msg)
