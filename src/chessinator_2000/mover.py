@@ -8,10 +8,14 @@ from chessinator_2000.utils import groupby
 
 
 class Mover(Protocol):
+    def __init__(self, color: PieceColor) -> None: ...
     def move(self, game: GameState) -> tuple[GameState, float] | None: ...
 
 
 class RandomMover:
+    def __init__(self, color: PieceColor) -> None:
+        pass
+
     def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
@@ -27,6 +31,9 @@ class RandomMover:
 
 
 class FirstMover:
+    def __init__(self, color: PieceColor) -> None:
+        pass
+
     def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
@@ -36,6 +43,9 @@ class FirstMover:
 
 
 class RandomPieceMover:
+    def __init__(self, color: PieceColor) -> None:
+        pass
+
     def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None

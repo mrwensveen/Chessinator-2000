@@ -4,9 +4,9 @@ from collections.abc import Generator
 
 from chessinator_2000.db.game_db import record_game_result
 from chessinator_2000.gamestate import GameState, PieceColor
-from chessinator_2000.mover import DatabaseMover, RandomPieceMover
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.app import Chessinator2000
+lazy from chessinator_2000 import mover
 
 DEFAULT_GAME = Game("""
     |r̃|ñ|b̃|q̃|k̃|b̃|ñ|r̃|
@@ -28,24 +28,39 @@ def main() -> None:
         action="store_true",
         help="Run without TUI. This starts a game between DatabaseMover and RandomPieceMover.",
     )
+    parser.add_argument(
+        "--white",
+        default="DatabaseMover",
+        help="Mover class for the WHITE player when --no-tui is specified.",
+    )
+    parser.add_argument(
+        "--black",
+        default="RandomPieceMover",
+        help="Mover class for the BLACK player when --no-tui is specified.",
+    )
     args = parser.parse_args()
 
     game = DEFAULT_GAME
 
     if args.no_tui:
-        run(game)
+        run(game, args)
     else:
         app = Chessinator2000(game)
         app.run()
 
 
-def run(game: GameState) -> None:
-    print(game)
-
+def run(game: GameState, args: argparse.Namespace) -> None:
     movers = frozendict() | {
-        PieceColor.WHITE: DatabaseMover(PieceColor.WHITE),
-        PieceColor.BLACK: RandomPieceMover(),
+        PieceColor.WHITE: getattr(mover, args.white, mover.DatabaseMover)(
+            PieceColor.WHITE
+        ),
+        PieceColor.BLACK: getattr(mover, args.black, mover.RandomPieceMover)(
+            PieceColor.BLACK
+        ),
     }
+
+    print(movers)
+    print(game)
 
     n = 1
     for turn in turns():
