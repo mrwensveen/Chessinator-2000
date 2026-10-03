@@ -8,10 +8,14 @@ from chessinator_2000.utils import groupby
 
 
 class Mover(Protocol):
+    def __init__(self, color: PieceColor) -> None: ...
     def move(self, game: GameState) -> tuple[GameState, float] | None: ...
 
 
 class RandomMover:
+    def __init__(self, color: PieceColor) -> None:
+        pass
+
     def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
@@ -27,6 +31,9 @@ class RandomMover:
 
 
 class FirstMover:
+    def __init__(self, color: PieceColor) -> None:
+        pass
+
     def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
@@ -36,6 +43,9 @@ class FirstMover:
 
 
 class RandomPieceMover:
+    def __init__(self, color: PieceColor) -> None:
+        pass
+
     def move(self, game: GameState) -> tuple[GameState, float] | None:
         if (len(game.board)) <= 2:
             return None
@@ -103,8 +113,18 @@ class DatabaseMover:
         if first is None:
             return None
 
-        choice = random.choice(list(first[1]))
-        return (choice, first[0])
+        best_moves = list(first[1])
+        score = first[0]
+
+        # choice = random.choice(best_moves)
+
+        origins = groupby(
+            best_moves, lambda move: next(iter(game.board.keys() - move.board.keys()))
+        )
+        square = random.choice(list(origins.keys()))
+        choice = random.choice(list(origins[square]))
+
+        return (choice, score)
 
     def score(self, *, white_wins: int, black_wins: int, num_played: int) -> float:
         score = (
