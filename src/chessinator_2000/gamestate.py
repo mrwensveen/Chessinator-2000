@@ -9,7 +9,7 @@ from python_fp_flow import Flow
 from . import utils
 
 type Square = tuple[int, int]
-type Move = tuple[Square, Piece, GameState]
+type Move = tuple[Square, GameState]
 
 class PieceKind(Enum):
     PAWN = 1
@@ -129,7 +129,7 @@ def get_occupant(game: GameState, position: Square | None) -> Piece | None:
     return None if position is None else game.board.get(position)
 
 
-def get_attackers(game: GameState, position: Square) -> Iterable[tuple[Square, Piece]]:
+def get_attackers(game: GameState, position: Square) -> Iterable[Square]:
     # If the current player already occupies the position, there are no attackers
     if (
         occupant := get_occupant(game, position)
@@ -139,8 +139,8 @@ def get_attackers(game: GameState, position: Square) -> Iterable[tuple[Square, P
     # All moves that cause the position to be taken by the current player
     all_moves = get_possible_moves(game, check_check=False)
     return [
-        (origin, piece)
-        for origin, piece, move in all_moves
+        origin
+        for origin, move in all_moves
         if (occupant := get_occupant(move, position)) is not None
         and occupant.color == game.turn
     ]
@@ -192,9 +192,9 @@ def get_piece_moves(
             piece_moves = slide_moves(game, position)
 
     if not check_check:
-        return [(position, piece, move) for move in piece_moves]
+        return [(position, move) for move in piece_moves]
 
-    return [(position, piece, move) for move in piece_moves if not _is_check(move)]
+    return [(position, move) for move in piece_moves if not _is_check(move)]
 
 
 def pawn_moves(game: GameState, position: Square) -> list[GameState]:

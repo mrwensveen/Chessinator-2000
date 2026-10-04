@@ -19,7 +19,7 @@ class RandomMover:
         if (len(game.board)) <= 2:
             return None
 
-        moves = [move for _, _, move in get_possible_moves(game)]
+        moves = [move for _, move in get_possible_moves(game)]
 
         if len(moves) > 0:
             # Pick a random move
@@ -38,7 +38,7 @@ class FirstMover:
             return None
 
         move = next(iter(get_possible_moves(game)), None)
-        return move if move is None else (move[2], 0.0)
+        return move if move is None else (move[1], 0.0)
 
 
 class RandomPieceMover:
@@ -53,7 +53,7 @@ class RandomPieceMover:
 
         if len(moves) > 0:
             # Get the move's leaving position by removing all resulting positions from the original board
-            origins = groupby(moves, lambda move: move[0], lambda move: move[2])
+            origins = groupby(moves, lambda move: move[0], lambda move: move[1])
             square = random.choice(list(origins.keys()))
             return (random.choice(list(origins[square])), 0.0)
         else:
@@ -80,7 +80,7 @@ class DatabaseMover:
         db_results: frozenset[DbGameResult] = frozenset(
             map(
                 DbGameResult._make,
-                find_game_results(game.turn.flipped(), (move for _, _, move in moves)),
+                find_game_results(game.turn.flipped(), (move for _, move in moves)),
             )
         )
 
@@ -89,7 +89,7 @@ class DatabaseMover:
             for move in moves
             if (
                 result := next(
-                    (r for r in db_results if r.game_state == str(move[2])), None
+                    (r for r in db_results if r.game_state == str(move[1])), None
                 )
             )
             is not None
@@ -120,7 +120,7 @@ class DatabaseMover:
 
         # choice = random.choice(best_moves)
 
-        origins = groupby(best_moves, lambda move: move[0], lambda move: move[2])
+        origins = groupby(best_moves, lambda move: move[0], lambda move: move[1])
         square = random.choice(list(origins.keys()))
         choice = random.choice(list(origins[square]))
 
