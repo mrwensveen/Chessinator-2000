@@ -9,7 +9,7 @@ from python_fp_flow import Flow
 from . import utils
 
 type Square = tuple[int, int]
-
+type Move = tuple[Square, Piece, GameState]
 
 class PieceKind(Enum):
     PAWN = 1
@@ -138,24 +138,12 @@ def get_attackers(game: GameState, position: Square) -> Iterable[tuple[Square, P
 
     # All moves that cause the position to be taken by the current player
     all_moves = get_possible_moves(game, check_check=False)
-    moves = (
-        move
-        for move in all_moves
+    return [
+        (origin, piece)
+        for origin, piece, move in all_moves
         if (occupant := get_occupant(move, position)) is not None
         and occupant.color == game.turn
-    )
-
-    # Get attacker positions by deleting all new positions from the current board, leaving only the attacker's origin
-    points = chain.from_iterable(
-        iter(utils.delete(*move.board.keys())(game.board).keys()) for move in moves
-    )
-
-    # Get the attacking pieces from the current board and return as frozendict
-    return (
-        (point, occupant)
-        for point in points
-        if (occupant := get_occupant(game, point)) is not None
-    )
+    ]
 
 
 def get_pieces(
@@ -166,9 +154,7 @@ def get_pieces(
     }
 
 
-def get_possible_moves(
-    game: GameState, *, check_check: bool = True
-) -> Iterable[GameState]:
+def get_possible_moves(game: GameState, *, check_check: bool = True) -> Iterable[Move]:
     return chain.from_iterable(
         get_piece_moves(game, position, piece, check_check=check_check)
         for position, piece in game.board.items()
@@ -193,7 +179,7 @@ def get_piece_moves(
     piece: Piece,
     *,
     check_check: bool = True,
-) -> list[GameState]:
+) -> list[Move]:
     piece_moves: list[GameState]
     match piece.kind:
         case PieceKind.PAWN:
@@ -204,13 +190,11 @@ def get_piece_moves(
             piece_moves = king_moves(game, position, castling_allowed=check_check)
         case PieceKind.QUEEN | PieceKind.ROOK | PieceKind.BISHOP:
             piece_moves = slide_moves(game, position)
-        case _:
-            piece_moves = []
 
     if not check_check:
-        return piece_moves
+        return [(position, piece, move) for move in piece_moves]
 
-    return [move for move in piece_moves if not _is_check(move)]
+    return [(position, piece, move) for move in piece_moves if not _is_check(move)]
 
 
 def pawn_moves(game: GameState, position: Square) -> list[GameState]:

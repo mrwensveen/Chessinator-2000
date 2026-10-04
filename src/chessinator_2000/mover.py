@@ -3,7 +3,7 @@ from collections import namedtuple
 from typing import Protocol
 
 from chessinator_2000.db.game_db import find_game_results
-from chessinator_2000.gamestate import GameState, PieceColor, get_possible_moves
+from chessinator_2000.gamestate import GameState, Move, PieceColor, get_possible_moves
 from chessinator_2000.utils import groupby
 
 
@@ -20,7 +20,7 @@ class RandomMover:
         if (len(game.board)) <= 2:
             return None
 
-        moves = list(get_possible_moves(game))
+        moves = [move for _, _, move in get_possible_moves(game)]
 
         if len(moves) > 0:
             # Pick a random move
@@ -39,7 +39,7 @@ class FirstMover:
             return None
 
         move = next(iter(get_possible_moves(game)), None)
-        return move if move is None else (move, 0.0)
+        return move if move is None else (move[2], 0.0)
 
 
 class RandomPieceMover:
@@ -54,9 +54,7 @@ class RandomPieceMover:
 
         if len(moves) > 0:
             # Get the move's leaving position by removing all resulting positions from the original board
-            origins = groupby(
-                moves, lambda move: next(iter(game.board.keys() - move.board.keys()))
-            )
+            origins = groupby(moves, lambda move: move[0], lambda move: move[2])
             square = random.choice(list(origins.keys()))
             return (random.choice(list(origins[square])), 0.0)
         else:
@@ -79,15 +77,18 @@ class DatabaseMover:
         moves = list(get_possible_moves(game))
 
         db_results: frozenset[DbGameResult] = frozenset(
-            map(DbGameResult._make, find_game_results(game.turn.flipped(), moves))
+            map(
+                DbGameResult._make,
+                find_game_results(game.turn.flipped(), (move for _, _, move in moves)),
+            )
         )
 
-        found = frozendict() | {
+        found: frozendict[Move, DbGameResult] = frozendict() | {
             move: result
             for move in moves
             if (
                 result := next(
-                    (r for r in db_results if r.game_state == str(move)), None
+                    (r for r in db_results if r.game_state == str(move[2])), None
                 )
             )
             is not None
@@ -118,9 +119,7 @@ class DatabaseMover:
 
         # choice = random.choice(best_moves)
 
-        origins = groupby(
-            best_moves, lambda move: next(iter(game.board.keys() - move.board.keys()))
-        )
+        origins = groupby(best_moves, lambda move: move[0], lambda move: move[2])
         square = random.choice(list(origins.keys()))
         choice = random.choice(list(origins[square]))
 
