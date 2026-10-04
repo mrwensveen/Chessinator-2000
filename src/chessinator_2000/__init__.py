@@ -3,7 +3,7 @@ import sys
 from collections.abc import Generator
 
 from chessinator_2000.db.game_db import record_game_result
-from chessinator_2000.gamestate import GameState, PieceColor
+from chessinator_2000.gamestate import GameState, PieceColor, get_scores
 from chessinator_2000.parser import Game
 from chessinator_2000.tui.app import Chessinator2000
 lazy from chessinator_2000 import mover
@@ -38,6 +38,11 @@ def main() -> None:
         default="RandomPieceMover",
         help="Mover class for the BLACK player when --no-tui is specified.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Display moves when --no-tui is specified.",
+    )
     args = parser.parse_args()
 
     game = DEFAULT_GAME
@@ -59,21 +64,24 @@ def run(game: GameState, args: argparse.Namespace) -> None:
         ),
     }
 
-    print(movers)
-    print(game)
+    if args.verbose:
+        print(movers)
+        print(game)
 
     n = 1
     for turn in turns():
         move, score = m if (m := movers[turn].move(game)) is not None else (None, 0.0)
 
         if move is None:
-            print(f"{n:0>4}\t{game.status}")
+            print(f"{n:0>4}\t{game.status}", file=sys.stderr)
             break
 
         if score != 0.0:
             print(f"{n:0>4}\t{score}", file=sys.stderr)
 
-        print(move)
+        if args.verbose:
+            print(move)
+
         game = move
         n += 1
 
@@ -83,6 +91,12 @@ def run(game: GameState, args: argparse.Namespace) -> None:
     )
     if winner is not None:
         print(f"Winner: {winner.name}")
+    else:
+        scores = get_scores(game)
+        print(
+            f"Scores: WHITE {scores.get(PieceColor.WHITE, 0):<2} BLACK {scores.get(PieceColor.BLACK, 0)}"
+        )
+
     record_game_result(game, winner)
 
 

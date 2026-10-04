@@ -1,7 +1,7 @@
 import random
-from typing import NamedTuple, Protocol
+from typing import Protocol
 
-from chessinator_2000.db.game_db import find_game_results
+from chessinator_2000.db.game_db import DbGameResult, find_game_results
 from chessinator_2000.gamestate import GameState, Move, PieceColor, get_possible_moves
 from chessinator_2000.utils import groupby
 
@@ -58,13 +58,6 @@ class RandomPieceMover:
             return (random.choice(list(origins[square])), 0.0)
         else:
             return None
-
-
-class DbGameResult(NamedTuple):
-    game_state: str
-    white_wins: int
-    black_wins: int
-    num_played: int
 
 
 class DatabaseMover:
