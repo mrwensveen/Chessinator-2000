@@ -66,7 +66,7 @@ class UserPlayer:
 
         self.selected_quare = square
 
-        piece_moves = tuple([move for _, move in get_piece_moves(game, square, piece)])
+        piece_moves = tuple(move for _, move in get_piece_moves(game, square, piece))
         self.choice_moves = piece_moves
 
         def _color_squares(g: GameState) -> set[Square]:
