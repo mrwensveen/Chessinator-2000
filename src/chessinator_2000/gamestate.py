@@ -426,3 +426,32 @@ def get_previous_games(game: GameState) -> Generator[GameState]:
     while game.previous is not None:
         yield game.previous
         game = game.previous
+
+
+def get_scores(game: GameState) -> frozendict[PieceColor, int]:
+    if len(game.board) <= 2 and game.previous is not None:
+        return get_scores(game.previous)
+
+    scores: frozendict[PieceColor, int] = frozendict() | {
+        c: sum(
+            _get_piece_score(piece.kind)
+            for piece in game.board.values()
+            if piece.color == c
+        )
+        for c in PieceColor
+    }
+    return scores
+
+
+def _get_piece_score(piece: PieceKind) -> int:
+    match piece:
+        case PieceKind.PAWN:
+            return 1
+        case PieceKind.KNIGHT | PieceKind.BISHOP:
+            return 3
+        case PieceKind.ROOK:
+            return 5
+        case PieceKind.QUEEN:
+            return 9
+        case _:
+            return 0

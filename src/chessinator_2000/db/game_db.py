@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from typing import NamedTuple
 
 from sqlalchemy import (
     Column,
@@ -12,7 +13,12 @@ from sqlalchemy import (
     update,
 )
 
-from chessinator_2000.gamestate import GameState, PieceColor, get_previous_games
+from chessinator_2000.gamestate import (
+    GameState,
+    PieceColor,
+    get_previous_games,
+    get_scores,
+)
 
 metadata_obj = MetaData()
 
@@ -21,8 +27,8 @@ game_result_table = Table(
     metadata_obj,
     Column("game_state", String, primary_key=True),
     Column("turn", Integer),
-    Column("white_wins", Integer, default=0),
-    Column("black_wins", Integer, default=0),
+    Column("white_score", Integer, default=0),
+    Column("black_score", Integer, default=0),
     Column("num_played", Integer, default=0),
 )
 
@@ -30,16 +36,29 @@ engine = create_engine("sqlite+pysqlite:///c2k.db")
 metadata_obj.create_all(engine)
 
 
+class DbGameResult(NamedTuple):
+    game_state: str
+    white_wins: int
+    black_wins: int
+    num_played: int
+
+
 def record_game_result(game: GameState, winner: PieceColor | None) -> None:
     games = {str(game): game.turn for game in (game, *get_previous_games(game))}
+    scores = get_scores(game)
 
     with engine.begin() as conn:
         update_winners = (
-            {}
+            {
+                "white_score": game_result_table.c.white_score
+                + scores.get(PieceColor.WHITE, 0),
+                "black_score": game_result_table.c.black_score
+                + scores.get(PieceColor.BLACK, 0),
+            }
             if winner is None
-            else {"white_wins": game_result_table.c.white_wins + 1}
+            else {"white_score": game_result_table.c.white_score + 100}
             if winner == PieceColor.WHITE
-            else {"black_wins": game_result_table.c.black_wins + 1}
+            else {"black_score": game_result_table.c.black_score + 100}
         )
         existing_states: set[str] = {
             state
@@ -60,11 +79,14 @@ def record_game_result(game: GameState, winner: PieceColor | None) -> None:
             return
 
         insert_winners = (
-            {"white_wins": 0, "black_wins": 0}
+            {
+                "white_score": scores.get(PieceColor.WHITE, 0),
+                "black_score": scores.get(PieceColor.BLACK, 0),
+            }
             if winner is None
-            else {"white_wins": 1, "black_wins": 0}
+            else {"white_score": 100, "black_score": 0}
             if winner == PieceColor.WHITE
-            else {"white_wins": 0, "black_wins": 1}
+            else {"white_score": 0, "black_score": 100}
         )
         conn.execute(
             insert(game_result_table),
@@ -78,7 +100,7 @@ def record_game_result(game: GameState, winner: PieceColor | None) -> None:
 
 def find_game_results(
     turn: PieceColor, moves: Iterable[GameState]
-) -> frozenset[tuple[str, int, int, int]]:
+) -> frozenset[DbGameResult]:
     games = {str(game) for game in moves}
 
     with engine.connect() as conn:
@@ -89,7 +111,7 @@ def find_game_results(
         )
         return frozenset(
             {
-                (game_state, white_wins, black_wins, num_played)
-                for game_state, _, white_wins, black_wins, num_played in found
+                (game_state, white_score, black_score, num_played)
+                for game_state, _, white_score, black_score, num_played in found
             }
         )

@@ -8,4 +8,4 @@ wheels/
 
 # Virtual environments
 .venv
-c2k.db
+*.db
