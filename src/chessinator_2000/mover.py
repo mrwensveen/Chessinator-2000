@@ -1,6 +1,5 @@
 import random
-from collections import namedtuple
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
 from chessinator_2000.db.game_db import find_game_results
 from chessinator_2000.gamestate import GameState, Move, PieceColor, get_possible_moves
@@ -61,9 +60,11 @@ class RandomPieceMover:
             return None
 
 
-DbGameResult = namedtuple(
-    "DbGameResult", ["game_state", "white_wins", "black_wins", "num_played"]
-)
+class DbGameResult(NamedTuple):
+    game_state: str
+    white_wins: int
+    black_wins: int
+    num_played: int
 
 
 class DatabaseMover:
