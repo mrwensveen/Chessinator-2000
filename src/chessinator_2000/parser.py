@@ -1,5 +1,5 @@
 import re
-from typing import Literal, cast, overload
+from typing import Literal, cast
 
 from chessinator_2000.gamestate import GameState, Piece, PieceColor, PieceKind, Square
 
@@ -20,41 +20,12 @@ def Pc(s: PC_KIND, moved=False) -> Piece:
     return Piece(PieceColor.WHITE if s == upper else PieceColor.BLACK, kind, moved)
 
 
-def Sq(s: str) -> Square:
-    if len(s) != 2:
-        raise ValueError
-
-    x = ord(s[0]) - 96
-    y = int(s[1])
-
-    if not (1 <= x <= 8 and 1 <= y <= 8):
-        raise ValueError
-
-    return (x, y)
-
-
-@overload
-def Game(board: list[str], turn=PieceColor.WHITE) -> GameState: ...
-
-
-@overload
-def Game(board: str) -> GameState: ...
-
-
-def Game(board: str | list[str], turn=PieceColor.WHITE) -> GameState:
-    return (
-        _game_from_str(board)
-        if isinstance(board, str)
-        else _game_from_list(board, turn)
-    )
-
-
-def _game_from_str(board: str) -> GameState:
-    split = board.strip("\n").splitlines() if isinstance(board, str) else board
-    ranks = [rank.lstrip().replace("|", "") for rank in split[:8]]
+def Game(board: str) -> GameState:
+    lines = board.strip("\n").splitlines()
+    ranks = [rank.lstrip().replace("|", "") for rank in lines[:8]]
     turn = (
         PieceColor.BLACK
-        if len(split) > 8 and "turn=BLACK" in split[8]
+        if len(lines) > 8 and "turn=BLACK" in lines[8]
         else PieceColor.WHITE
     )
 
@@ -62,7 +33,8 @@ def _game_from_str(board: str) -> GameState:
 
 
 def _game_from_list(ranks: list[str], turn: PieceColor) -> GameState:
-    # Encode unmoved pieces (p + \ud1fa) as a single character
+    # Replace unmoved pieces ('P' + \u0303 = 'P̃') by a single character chr(ord('P') + 0x0303)
+    # (this is not a valid renderable character), while leaving moved pieces untouched.
     re_unmoved = re.compile("(.)\u0303")
 
     def encode_unmoved(match: re.Match) -> str:
