@@ -11,6 +11,7 @@ from . import utils
 type Square = tuple[int, int]
 type Move = tuple[Square, GameState]
 
+
 class PieceKind(Enum):
     PAWN = 1
     ROOK = 2
@@ -272,13 +273,10 @@ def knight_moves(game: GameState, position: Square) -> list[GameState]:
         (x - 1, y + 2) if x >= 2 and y <= 6 else None,
     ]
 
+    occupants = [(p, get_occupant(game, p)) for p in positions]
     possible = [
-        p
-        for p in positions
-        if p is not None
-        and (
-            (occupant := get_occupant(game, p)) is None or occupant.color != piece.color
-        )
+        pos if occupant is None or occupant.color != piece.color else None
+        for pos, occupant in occupants
     ]
 
     return [game.move(piece, position, dst) for dst in possible if dst is not None]
@@ -304,7 +302,6 @@ def king_moves(
     ]
 
     occupants = [(p, get_occupant(game, p)) for p in positions]
-
     possible = [
         pos if occupant is None or occupant.color != piece.color else None
         for pos, occupant in occupants
