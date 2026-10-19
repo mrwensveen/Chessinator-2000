@@ -130,23 +130,6 @@ def get_occupant(game: GameState, position: Square | None) -> Piece | None:
     return None if position is None else game.board.get(position)
 
 
-def get_attackers(game: GameState, position: Square) -> Iterable[Square]:
-    # If the current player already occupies the position, there are no attackers
-    if (
-        occupant := get_occupant(game, position)
-    ) is not None and occupant.color == game.turn:
-        return frozendict()
-
-    # All moves that cause the position to be taken by the current player
-    all_moves = get_possible_moves(game, check_check=False)
-    return [
-        origin
-        for origin, move in all_moves
-        if (occupant := get_occupant(move, position)) is not None
-        and occupant.color == game.turn
-    ]
-
-
 def get_pieces(
     game: GameState, color: PieceColor, kind: PieceKind
 ) -> frozendict[Square, Piece]:
@@ -163,11 +146,28 @@ def get_possible_moves(game: GameState, *, check_check: bool = True) -> Iterable
     )
 
 
+def _get_attackers(game: GameState, position: Square) -> Iterable[Square]:
+    # If the current player already occupies the position, there are no attackers
+    if (
+        occupant := get_occupant(game, position)
+    ) is not None and occupant.color == game.turn:
+        return []
+
+    # All moves that cause the position to be taken by the current player
+    all_moves = get_possible_moves(game, check_check=False)
+    return [
+        origin
+        for origin, move in all_moves
+        if (occupant := get_occupant(move, position)) is not None
+        and occupant.color == game.turn
+    ]
+
+
 def _is_check(game: GameState) -> bool:
     king_positions = get_pieces(game, game.turn.flipped(), PieceKind.KING).keys()
     attackers = any(
         chain.from_iterable(
-            get_attackers(game, position) for position in king_positions
+            _get_attackers(game, position) for position in king_positions
         )
     )
 
@@ -312,23 +312,22 @@ def king_moves(
 
     moves = [move_king(dst) if dst is not None else None for dst in possible]
 
-    if not castling_allowed:
+    if piece.moved or not castling_allowed:
         return [move for move in moves if move is not None]
 
     # Castling is not allowed if king leaves or crosses check
+    is_check = _is_check(game.flip_turn())
     qs_rook = (
         rook
-        if not piece.moved
-        and (rook := _get_castle_rook(game, y, "QS")) is not None
-        and not _is_check(game.flip_turn())
+        if (rook := _get_castle_rook(game, y, "QS")) is not None
+        and not is_check
         and not _is_check(move_king((x - 1, y)))
         else None
     )
     ks_rook = (
         rook
-        if not piece.moved
-        and (rook := _get_castle_rook(game, y, "KS")) is not None
-        and not _is_check(game.flip_turn())
+        if (rook := _get_castle_rook(game, y, "KS")) is not None
+        and not is_check
         and not _is_check(move_king((x + 1, y)))
         else None
     )
