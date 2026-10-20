@@ -1,5 +1,4 @@
 from collections.abc import Callable, Iterable
-from typing import Tuple
 
 
 def delete[K, V](*key: K) -> Callable[[frozendict[K, V]], frozendict[K, V]]:
