@@ -3,7 +3,7 @@ from typing import Protocol
 
 from chessinator_2000.db.game_db import DbGameResult, find_game_results
 from chessinator_2000.gamestate import GameState, Move, PieceColor, get_possible_moves
-from chessinator_2000.utils import groupby
+from chessinator_2000.utils import fst, groupby, snd
 
 
 class Mover(Protocol):
@@ -52,8 +52,8 @@ class RandomPieceMover:
         moves = list(get_possible_moves(game))
 
         if len(moves) > 0:
-            # Get the move's leaving position by removing all resulting positions from the original board
-            origins = groupby(moves, lambda move: move[0], lambda move: move[1])
+            # Group by the moves' leaving/source positions
+            origins = groupby(moves, fst, snd)
             square = random.choice(list(origins.keys()))
             return (random.choice(list(origins[square])), 0.0)
         else:

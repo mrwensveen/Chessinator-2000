@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterable
+from typing import Tuple
 
 
 def delete[K, V](*key: K) -> Callable[[frozendict[K, V]], frozendict[K, V]]:
@@ -29,3 +30,11 @@ def groupby[T, K, V](
         return tuple(v for _k, v in tuples if _k == k)
 
     return frozendict((k, _values(k)) for k in keys)  # pyright: ignore[reportCallIssue]
+
+
+def fst[T1, T2](t: tuple[T1, T2]) -> T1:
+    return t[0]
+
+
+def snd[T1, T2](t: tuple[T1, T2]) -> T2:
+    return t[1]
