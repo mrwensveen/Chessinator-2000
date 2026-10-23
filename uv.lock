@@ -81,6 +81,7 @@ source = { editable = "." }
 dependencies = [
     { name = "alembic" },
     { name = "python-fp-flow" },
+    { name = "sqids" },
     { name = "sqlalchemy" },
     { name = "textual" },
     { name = "textual-dev" },
@@ -95,6 +96,7 @@ dev = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.20.0" },
     { name = "python-fp-flow", specifier = ">=0.1.0.post2" },
+    { name = "sqids", specifier = ">=0.5.2" },
     { name = "sqlalchemy", specifier = ">=2.1.0" },
     { name = "textual", specifier = ">=8.2.8" },
     { name = "textual-dev", specifier = ">=1.8.0" },
@@ -421,6 +423,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c0/8f/0722ca900cc807c13a6a0c696dacf35430f72e0ec571c4275d2371fca3e9/rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36", size = 230680, upload-time = "2026-04-12T08:24:00.75Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl", hash = "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb", size = 310654, upload-time = "2026-04-12T08:24:02.83Z" },
+]
+
+[[package]]
+name = "sqids"
+version = "0.5.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/5b/98c1b37109210631875092d9e7cb7aef3fda2f03780dd999fe5854afa5f3/sqids-0.5.2.tar.gz", hash = "sha256:5ac08f0c5c9b6814bc2e7c79ee5931e0849d25d95c50e415771b022a44f58af9", size = 18213, upload-time = "2025-05-13T16:36:35.644Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7c/96/178018f3d5b871042e257e9e1db26c6aeb2a704e72cdc884cd2a8918ac2b/sqids-0.5.2-py3-none-any.whl", hash = "sha256:0089ba823e21fd44290c7225f02fb0b5140c36e41959c04d86d3f6f2513799be", size = 8870, upload-time = "2025-05-13T16:36:34.072Z" },
 ]
 
 [[package]]
