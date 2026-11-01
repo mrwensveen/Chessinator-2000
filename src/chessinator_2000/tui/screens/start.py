@@ -14,6 +14,7 @@ from chessinator_2000.mover import (
     RandomMover,
     RandomPieceMover,
 )
+from chessinator_2000.net.lan import LANPlayer
 from chessinator_2000.tui.player import CpuPlayer, Player, UserPlayer
 
 
@@ -40,10 +41,11 @@ class StartScreen(ModalScreen[StartScreenResult]):
     def compose(self) -> ComposeResult:
         player_options = [
             ("Player", 1),
-            ("CPU C-2000", 2),
-            ("CPU Random move", 3),
-            ("CPU Random piece", 4),
-            ("CPU First move", 5),
+            ("Remote Player (LAN)", 2),
+            ("CPU C-2000", 3),
+            ("CPU Random move", 4),
+            ("CPU Random piece", 5),
+            ("CPU First move", 6),
         ]
 
         yield Grid(
@@ -96,12 +98,14 @@ class StartScreen(ModalScreen[StartScreenResult]):
             case 1:
                 return lambda app, color: UserPlayer(app, color)
             case 2:
-                return lambda app, color: CpuPlayer(app, color, DatabaseMover(color))
+                return lambda app, color: LANPlayer(app, color)
             case 3:
-                return lambda app, color: CpuPlayer(app, color, RandomMover(color))
+                return lambda app, color: CpuPlayer(app, color, DatabaseMover(color))
             case 4:
-                return lambda app, color: CpuPlayer(app, color, RandomPieceMover(color))
+                return lambda app, color: CpuPlayer(app, color, RandomMover(color))
             case 5:
+                return lambda app, color: CpuPlayer(app, color, RandomPieceMover(color))
+            case 6:
                 return lambda app, color: CpuPlayer(app, color, FirstMover(color))
 
         msg = f"Could not create player factory for option {option}"
