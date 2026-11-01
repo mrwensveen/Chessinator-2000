@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Matthijs Wensveen", email = "matthijs.wensveen@statnett.no" },
 ]
-requires-python = ">=3.15.0rc1"
+requires-python = ">=3.15"
 dependencies = [
     "alembic>=1.20.0",
     "python-fp-flow>=0.1.0.post2",
